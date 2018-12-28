@@ -23,12 +23,12 @@ int main() {
 	cout << "Log file last modified at " << dt << endl;
 
 	Trainer* trainer = new Trainer();
-	trainer->loadConfig("../a1a.config.txt");	// Clion looks for file from Debug folder.
-	trainer->loadLibSVMData("../a1a.txt");
+	trainer->loadConfig("../data/a1a.config.txt");	// Clion looks for file from Debug folder.
+	trainer->loadLibSVMData("../data/a1a.txt");
 
 	Trainer* tester = new Trainer();
-	tester->loadConfig("../a1a.config.test.txt");	// Clion looks for file from Debug folder.
-	tester->loadLibSVMData("../a1a.test.txt");
+	tester->loadConfig("../data/a1a.config.test.txt");	// Clion looks for file from Debug folder.
+	tester->loadLibSVMData("../data/a1a.test.txt");
 
 	Network* network = new Network();
 	network->structLearn_ChowLiu_CompData(trainer);
