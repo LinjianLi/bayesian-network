@@ -22,42 +22,18 @@ int main() {
 	char* dt = ctime(&now);
 	cout << "Log file last modified at " << dt << endl;
 
-/*
-	//The following block load the data with the help of configuration file.
-	{
-		Trainer *trainer = new Trainer();
-		trainer->loadConfig("../data/a1a.config.txt");    // Clion looks for file from Debug folder.
-		trainer->loadLIBSVMData("../data/a1a.txt");
+	Trainer *trainer = new Trainer();
+	trainer->loadLIBSVMData_AutoDetectConfig("../data/a1a.txt");    // Clion looks for file from Debug folder.
 
-		Trainer *tester = new Trainer();
-		tester->loadConfig("../data/a1a.config.test.txt");    // Clion looks for file from Debug folder.
-		tester->loadLIBSVMData("../data/a1a.test.txt");
+	Trainer *tester = new Trainer();
+	tester->loadLIBSVMData_AutoDetectConfig("../data/a1a.test.txt");
 
-		Network* network = new Network();
-		network->structLearn_ChowLiu_CompData(trainer);
-		network->trainNetwork_KnowStruct_CompData(trainer);
-		network->testingNetworkReturnAccuracy(tester);
+	Network* network = new Network();
+	network->structLearn_ChowLiu_CompData(trainer);
+	network->trainNetwork_KnowStruct_CompData(trainer);
+	network->testingNetworkReturnAccuracy(tester);
 
-		st.test2(network);
-	}
-*/
-
-	//The following block load the data and detect the configuration automatically.
-	{
-		Trainer *trainer = new Trainer();
-		trainer->loadLIBSVMData_AutoDetectConfig("../data/a1a.txt");    // Clion looks for file from Debug folder.
-
-		Trainer *tester = new Trainer();
-		tester->loadLIBSVMData_AutoDetectConfig("../data/a1a.test.txt");
-
-		Network* network = new Network();
-		network->structLearn_ChowLiu_CompData(trainer);
-		network->trainNetwork_KnowStruct_CompData(trainer);
-		network->testingNetworkReturnAccuracy(tester);
-
-		st.test2(network);
-	}
-
+	st.test2(network);
 
 	cout << '\n' << "Log file last modified at " << dt << endl;
 
