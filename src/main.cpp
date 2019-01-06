@@ -35,6 +35,8 @@ int main() {
 
 	st.test2(network);
 
+	now = time(0);
+	dt = ctime(&now);
 	cout << '\n' << "Log file last modified at " << dt << endl;
 
 	std::cout.rdbuf(coutbuf); //reset to standard output again
