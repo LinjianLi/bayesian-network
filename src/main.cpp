@@ -4,6 +4,7 @@
 #include "SomeTest.h"
 #include "Trainer.h"
 #include "Network.h"
+#include "ChowLiuTree.h"
 
 int main() {
 
@@ -32,7 +33,7 @@ int main() {
 
 	auto *trainer = new Trainer();
 	auto *tester = new Trainer();
-	auto *network = new Network();
+	auto *network = new ChowLiuTree();
 
 	string train_set_file_path, test_set_file_path;
 
@@ -54,7 +55,7 @@ int main() {
 
 	trainer->LoadLIBSVMDataAutoDetectConfig(train_set_file_path);
 	tester->LoadLIBSVMDataAutoDetectConfig(test_set_file_path);
-	network->StructLearnChowLiuTreeCompData(trainer);
+	network->StructLearnCompData(trainer);
 	network->LearnParmsKnowStructCompData(trainer);
 	network->TestNetReturnAccuracy(tester);
 
