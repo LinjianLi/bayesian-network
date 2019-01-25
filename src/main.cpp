@@ -37,6 +37,8 @@ int main() {
 
 	string train_set_file_path, test_set_file_path;
 
+	// Note that Clion search file starting at "cmake-build-debug" folder.
+
 	train_set_file_path =
 				//	"../data/a1a.txt"
 				//	"../data/a2a.txt"
