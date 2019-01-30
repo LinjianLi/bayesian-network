@@ -11,7 +11,7 @@ int main() {
 	SomeTest st;
 
 	st.test1();
-
+/*
 	cout << "Do you want to redirect std::cout to a text file? \n"
 	     << "Please input [y/n]: " ;
 	char redirect;
@@ -70,7 +70,7 @@ int main() {
 		std::cout << "The std::cout has been reset to standard output again." << endl;
 	}
 	std::cout << "Hello, World!" << std::endl;
-
+*/
 	return 0;
 
 
