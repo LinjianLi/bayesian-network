@@ -15,7 +15,7 @@ int main() {
   cout << "Do you want to redirect std::cout to a text file? \n"
        << "Please input [y/n]: " ;
   char redirect;
-  cin >> redirect;
+  redirect = 'n'; //cin >> redirect;
 
   string log_file = "log_bayesian_network_program.txt";
   std::streambuf *coutbuf = std::cout.rdbuf();  //save old buf
