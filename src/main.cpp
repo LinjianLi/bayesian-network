@@ -8,10 +8,6 @@
 
 int main() {
 
-  SomeTest st;
-
-  st.test1();
-
   cout << "Do you want to redirect std::cout to a text file? \n"
        << "Please input [y/n]: " ;
   char redirect;
@@ -30,6 +26,11 @@ int main() {
   time_t now = time(0);
   char* dt = ctime(&now);
   cout << "Log file last modified at " << dt << endl;
+
+  SomeTest st;
+
+  st.test1();
+
 
   auto *trainer = new Trainer();
   auto *tester = new Trainer();
@@ -59,7 +60,11 @@ int main() {
   tester->LoadLIBSVMDataAutoDetectConfig(test_set_file_path);
   network->StructLearnCompData(trainer);
   network->LearnParmsKnowStructCompData(trainer);
-  network->TestNetReturnAccuracy(tester);
+  //network->TestNetReturnAccuracy(tester);
+
+
+  st.test2(network, tester, 0);
+
 
   now = time(0);
   dt = ctime(&now);
