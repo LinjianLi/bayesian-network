@@ -29,7 +29,7 @@ int main() {
 
   SomeTest st;
 
-  st.test1();
+  //st.test1();
 
 
   auto *trainer = new Trainer();
@@ -64,6 +64,7 @@ int main() {
 
 
   st.test2(network, tester, 0);
+  st.test3(network, 0);
 
 
   now = time(0);
