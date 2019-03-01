@@ -63,7 +63,7 @@ int main() {
   //network->TestNetReturnAccuracy(tester);
 
 
-  st.test2(network, tester, 0);
+  //st.test2(network, tester, 0);
   st.test3(network, 0);
 
 
