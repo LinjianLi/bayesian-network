@@ -5,6 +5,8 @@
 #include "Network.h"
 #include "ChowLiuTree.h"
 
+
+
 int main() {
 
   cout << "Do you want to redirect std::cout to a text file? \n"
@@ -25,7 +27,6 @@ int main() {
   time_t now = time(0);
   char* dt = ctime(&now);
   cout << "Log file last modified at " << dt << endl;
-
 
   now = time(0);
   dt = ctime(&now);
