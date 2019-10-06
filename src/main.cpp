@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <ctime>
-#include "Trainer.h"
+#include "Dataset.h"
 #include "Network.h"
 #include "ChowLiuTree.h"
 
