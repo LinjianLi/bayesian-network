@@ -7,3 +7,6 @@
 [submodule "lib/tinyxml2"]
 	path = lib/tinyxml2
 	url = https://github.com/leethomason/tinyxml2
+[submodule "lib/csv"]
+	path = lib/csv
+	url = https://github.com/p-ranav/csv
