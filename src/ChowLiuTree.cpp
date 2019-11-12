@@ -20,7 +20,7 @@ double ChowLiuTree::ComputeMutualInformation(Node *Xi, Node *Xj, const Dataset *
   auto dXj = dynamic_cast<DiscreteNode*>(Xj);
 
   // Initialize the table.
-  int m = dts->num_instance, ri = dXi->num_potential_vals, rj = dXj->num_potential_vals;
+  int m = dts->num_instance, ri = dXi->GetDomainSize(), rj = dXj->GetDomainSize();
   double **Pij = new double* [ri];
   for (int i=0; i<ri; ++i) {
     Pij[i] = new double[rj]();    // The parentheses at end will initialize the array to be all zeros.
@@ -112,9 +112,9 @@ void ChowLiuTree::StructLearnChowLiuTreeCompData(Dataset *dts, bool print_struct
 
     DiscreteNode *node_ptr = new DiscreteNode(i);  // For now, only support discrete node.
 
-    node_ptr->num_potential_vals = dts->num_of_possible_values_of_disc_vars[i];
+    node_ptr->SetDomainSize(dts->num_of_possible_values_of_disc_vars[i]);
 
-    node_ptr->potential_vals = new int[node_ptr->num_potential_vals];
+    node_ptr->potential_vals = new int[node_ptr->GetDomainSize()];
 
     int j = 0;
     for (auto v : dts->map_disc_vars_possible_values[i]) {

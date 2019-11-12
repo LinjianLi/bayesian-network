@@ -52,9 +52,9 @@ vector<Node*> XMLBIFParser::GetUnconnectedNodes() const {
         n_p->vec_str_potential_vals.push_back(((string)xml_val_ptr->GetText()));
         xml_val_ptr = xml_val_ptr->NextSiblingElement("VALUE");
       }
-      n_p->num_potential_vals = n_p->vec_str_potential_vals.size();
-      n_p->potential_vals = new int[n_p->num_potential_vals];
-      for (int i=0; i<n_p->num_potential_vals; ++i) {
+      n_p->SetDomainSize(n_p->vec_str_potential_vals.size());
+      n_p->potential_vals = new int[n_p->GetDomainSize()];
+      for (int i=0; i<n_p->GetDomainSize(); ++i) {
         n_p->potential_vals[i] = i;
         n_p->vec_potential_vals.push_back(i);
       }
@@ -140,11 +140,11 @@ void XMLBIFParser::AssignProbsToNodes(vector<XMLElement*> vec_xml_elems_ptr, vec
     vec_range_each_digit.reserve(num_given+1);
 
     // The first "digit" is for this node.
-    vec_range_each_digit.push_back(for_np->num_potential_vals);
+    vec_range_each_digit.push_back(for_np->GetDomainSize());
 
     // The following "digits" are for parents of this node.
     for (int i=0; i<num_given; ++i) {
-      vec_range_each_digit.push_back(dynamic_cast<DiscreteNode*>(vec_given_vars_ptrs[i])->num_potential_vals);
+      vec_range_each_digit.push_back(dynamic_cast<DiscreteNode*>(vec_given_vars_ptrs[i])->GetDomainSize());
     }
 
     vector<vector<int>> nary_counts = NaryCount(vec_range_each_digit);

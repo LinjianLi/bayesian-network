@@ -68,8 +68,8 @@ void Network::ConstructNaiveBayesNetwork(Dataset *dts) {
 #pragma omp parallel for
   for (int i=0; i<num_nodes; ++i) {
     DiscreteNode *node_ptr = new DiscreteNode(i);  // For now, only support discrete node.
-    node_ptr->num_potential_vals = dts->num_of_possible_values_of_disc_vars[i];
-    node_ptr->potential_vals = new int[node_ptr->num_potential_vals];
+    node_ptr->SetDomainSize(dts->num_of_possible_values_of_disc_vars[i]);
+    node_ptr->potential_vals = new int[node_ptr->GetDomainSize()];
     int j = 0;
     for (auto v : dts->map_disc_vars_possible_values[i]) {
       node_ptr->potential_vals[j++] = v;
@@ -128,8 +128,8 @@ void Network::StructLearnCompData(Dataset *dts, bool print_struct, string topo_o
     } else {
       node_ptr->node_name = to_string(i);
     }
-    node_ptr->num_potential_vals = dts->num_of_possible_values_of_disc_vars[i];
-    node_ptr->potential_vals = new int[node_ptr->num_potential_vals];
+    node_ptr->SetDomainSize(dts->num_of_possible_values_of_disc_vars[i]);
+    node_ptr->potential_vals = new int[node_ptr->GetDomainSize()];
     int j = 0;
     for (auto v : dts->map_disc_vars_possible_values[i]) {
       node_ptr->potential_vals[j++] = v;
@@ -393,10 +393,10 @@ void Network::LearnParamsKnowStructCompData(const Dataset *dts, int alpha, bool 
           int query = dts->dataset_all_vars[s][i];
           (*MPT)[query] += 1;
         }
-        for (int ii = 0; ii < this_node->num_potential_vals; ++ii) {
+        for (int ii = 0; ii < this_node->GetDomainSize(); ++ii) {
           int query = this_node->potential_vals[ii];
           // Laplace smoothing.
-          (*MPT)[query] = ((*MPT)[query] + alpha) / (denominator + alpha * this_node->num_potential_vals);
+          (*MPT)[query] = ((*MPT)[query] + alpha) / (denominator + alpha * this_node->GetDomainSize());
         }
 
       } else {  // If the node has parents.
@@ -422,10 +422,10 @@ void Network::LearnParamsKnowStructCompData(const Dataset *dts, int alpha, bool 
             (*CPT)[query][par_comb] += compatibility;
           }
           // Normalize so that the sum is 1.
-          for (int j = 0; j < this_node->num_potential_vals; ++j) {
+          for (int j = 0; j < this_node->GetDomainSize(); ++j) {
             int query = this_node->potential_vals[j];
             // Laplace smoothing.
-            (*CPT)[query][par_comb] = ((*CPT)[query][par_comb] + alpha) / (denominator + alpha * this_node->num_potential_vals);
+            (*CPT)[query][par_comb] = ((*CPT)[query][par_comb] + alpha) / (denominator + alpha * this_node->GetDomainSize());
           }
         }
 
@@ -961,7 +961,7 @@ Factor Network::CalcuMargWithLikelihoodWeightingSamples(const vector<pair<Discre
   DiscreteNode *n_p = dynamic_cast<DiscreteNode*>(this->FindNodePtrByIndex(node_index));
 
   // Initialize the map.
-  for (int i=0; i<n_p->num_potential_vals; ++i) {
+  for (int i=0; i<n_p->GetDomainSize(); ++i) {
     value_weight[n_p->potential_vals[i]] = 0;
   }
 
@@ -989,7 +989,7 @@ Factor Network::CalcuMargWithLikelihoodWeightingSamples(const vector<pair<Discre
   set<int> rv;
   rv.insert(node_index);
   set<DiscreteConfig> sc;
-  for (int i=0; i<n_p->num_potential_vals; ++i) {
+  for (int i=0; i<n_p->GetDomainSize(); ++i) {
     DiscreteConfig c;
     c.insert(pair<int, int>(node_index, n_p->potential_vals[i]));
     sc.insert(c);
@@ -1118,7 +1118,7 @@ int Network::SampleNodeGivenMarkovBlanketReturnValIndex(Node *node_ptr, Discrete
   Factor f = VarElimInferReturnPossib(var_elim_ord, num_elim_ord, markov_blanket, node_ptr);
 
   vector<int> weights;
-  for (int i=0; i<dynamic_cast<DiscreteNode*>(node_ptr)->num_potential_vals; ++i) {
+  for (int i=0; i<dynamic_cast<DiscreteNode*>(node_ptr)->GetDomainSize(); ++i) {
     DiscreteConfig temp;
     temp.insert(pair<int,int>(node_ptr->GetNodeIndex(),dynamic_cast<DiscreteNode*>(node_ptr)->potential_vals[i]));
     weights.push_back(f.map_potentials[temp]*10000);
@@ -1133,7 +1133,7 @@ int Network::SampleNodeGivenMarkovBlanketReturnValIndex(Node *node_ptr, Discrete
 
 int Network::ApproxInferByProbLogiRejectSamp(DiscreteConfig e, Node *node, vector<DiscreteConfig> &samples) {
   DiscreteConfig possb_values;
-  for (int i=0; i<dynamic_cast<DiscreteNode*>(node)->num_potential_vals; ++i) {
+  for (int i=0; i<dynamic_cast<DiscreteNode*>(node)->GetDomainSize(); ++i) {
     possb_values.insert(pair<int,int>(node->GetNodeIndex(),dynamic_cast<DiscreteNode*>(node)->potential_vals[i]));
   }
 
@@ -1155,14 +1155,14 @@ int Network::ApproxInferByProbLogiRejectSamp(DiscreteConfig e, Node *node, vecto
   if (num_valid_sample==0) {
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     default_random_engine rand_gen(seed);
-    uniform_int_distribution<int> this_distribution(0,dynamic_cast<DiscreteNode*>(node)->num_potential_vals-1);
+    uniform_int_distribution<int> this_distribution(0,dynamic_cast<DiscreteNode*>(node)->GetDomainSize()-1);
     return dynamic_cast<DiscreteNode*>(node)->potential_vals[this_distribution(rand_gen)];
   }
 
   // Find the argmax.
   int lable_index_predict = -1;
   int max_occurred = 0;
-  for (int i=0; i<dynamic_cast<DiscreteNode*>(node)->num_potential_vals; ++i) {
+  for (int i=0; i<dynamic_cast<DiscreteNode*>(node)->GetDomainSize(); ++i) {
     if (lable_index_predict==-1 || count_each_value[i]>max_occurred) {
       lable_index_predict = i;
       max_occurred = count_each_value[i];

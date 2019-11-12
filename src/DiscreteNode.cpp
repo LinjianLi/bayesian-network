@@ -4,6 +4,8 @@
 
 #include "DiscreteNode.h"
 
+#include <utility>
+
 DiscreteNode::DiscreteNode() {
   is_discrete = true;
 }
@@ -14,28 +16,36 @@ DiscreteNode::DiscreteNode(int index) {
 }
 
 DiscreteNode::DiscreteNode(int index, string name): DiscreteNode(index) {
-  node_name = name;
+  node_name = std::move(name);
 }
 
 void DiscreteNode::SetDomain(vector<string> str_domain) {
-  num_potential_vals = str_domain.size();
+  SetDomainSize(str_domain.size());
   vec_str_potential_vals = str_domain;
   for (const auto &s : str_domain) {
     vec_potential_vals.push_back(vec_potential_vals.size());
   }
-  potential_vals = new int[num_potential_vals];
-  for (int i=0; i<num_potential_vals; ++i) {
+  potential_vals = new int[GetDomainSize()];
+  for (int i=0; i<GetDomainSize(); ++i) {
     potential_vals[i] = i;
   }
 }
 
 void DiscreteNode::SetDomain(vector<int> int_domain) {
-  num_potential_vals = int_domain.size();
+  SetDomainSize(int_domain.size());
   vec_potential_vals = int_domain;
-  potential_vals = new int[num_potential_vals];
-  for (int i=0; i<num_potential_vals; ++i) {
+  potential_vals = new int[GetDomainSize()];
+  for (int i=0; i<GetDomainSize(); ++i) {
     potential_vals[i] = int_domain.at(i);
   }
+}
+
+int DiscreteNode::GetDomainSize() const {
+  return num_potential_vals;
+}
+
+void DiscreteNode::SetDomainSize(int size) {
+  num_potential_vals = size;
 }
 
 void DiscreteNode::AddParent(Node *p) {
@@ -45,11 +55,17 @@ void DiscreteNode::AddParent(Node *p) {
     exit(1);
   }
   set_parents_ptrs.insert(p);
+  int p_idx = p->GetNodeIndex();
+  if (set_parent_indexes.find(p_idx) != set_parent_indexes.end()) {
+    set_parent_indexes.insert(p_idx);
+    vec_disc_parent_indexes.push_back(p_idx);
+    map_disc_parents_domain_size[p_idx] = ((DiscreteNode*)p)->GetDomainSize();
+  }
 }
 
 int DiscreteNode::GetNumParams() const {
   int scale = this->set_discrete_parents_combinations.empty() ? 1 : this->set_discrete_parents_combinations.size();
-  return this->num_potential_vals * scale;
+  return this->GetDomainSize() * scale;
 }
 
 void DiscreteNode::ClearParams() {
@@ -64,6 +80,9 @@ void DiscreteNode::ClearParams() {
       }
     }
   }
+
+  map_cond_prob_table_statistics.clear();
+  map_total_count_under_parents_config.clear();
 }
 
 
@@ -71,7 +90,7 @@ void DiscreteNode::PrintProbabilityTable() {
   cout << GetNodeIndex() << ":\t";
 
   if (set_parents_ptrs.empty()) {    // If this node has no parents
-    for(int i=0; i<num_potential_vals; ++i) {    // For each row of MPT
+    for(int i=0; i<GetDomainSize(); ++i) {    // For each row of MPT
       int query = potential_vals[i];
       cout << "P(" << query << ")=" << map_marg_prob_table[query] << '\t';
     }
@@ -79,7 +98,7 @@ void DiscreteNode::PrintProbabilityTable() {
 
   } else {  // If this node has parents
 
-    for(int i=0; i<num_potential_vals; ++i) {    // For each row of CPT
+    for(int i=0; i<GetDomainSize(); ++i) {    // For each row of CPT
       int query = potential_vals[i];
       for (const auto &comb : set_discrete_parents_combinations) {  // For each column of CPT
         string condition;
@@ -109,12 +128,12 @@ int DiscreteNode::SampleNodeGivenParents(DiscreteConfig evidence) {
 
   vector<int> weights;
   if (par_evi.empty()) {
-    for (int i=0; i<num_potential_vals; ++i) {
+    for (int i=0; i<GetDomainSize(); ++i) {
       int w = (int)(map_marg_prob_table[potential_vals[i]]*10000);
       weights.push_back(w);
     }
   } else {
-    for (int i=0; i<num_potential_vals; ++i) {
+    for (int i=0; i<GetDomainSize(); ++i) {
       int w = (int)(map_cond_prob_table[potential_vals[i]][par_evi]*10000);
       weights.push_back(w);
     }
@@ -124,4 +143,21 @@ int DiscreteNode::SampleNodeGivenParents(DiscreteConfig evidence) {
   default_random_engine rand_gen(seed);
   discrete_distribution<int> this_distribution(weights.begin(),weights.end());
   return potential_vals[this_distribution(rand_gen)];
+}
+
+
+void DiscreteNode::AddInstances(int query_var, int parents_config, int count) {
+  map_total_count_under_parents_config[parents_config] += count;
+  if (map_cond_prob_table_statistics.find(query_var) == map_cond_prob_table_statistics.end()
+      || map_cond_prob_table_statistics[query_var].find(parents_config) == map_cond_prob_table_statistics[query_var].end()) {
+    map_cond_prob_table_statistics[query_var][parents_config] = 0;
+  }
+  map_cond_prob_table_statistics[query_var][parents_config] += count;
+}
+
+double DiscreteNode::GetProbability(int query_var, int parents_config) {
+  int frequency_count =  map_cond_prob_table_statistics[query_var][parents_config];
+  int total = map_total_count_under_parents_config[parents_config];
+  double prob = (frequency_count + laplace_smooth) / (total + laplace_smooth * GetDomainSize());
+  return prob;
 }

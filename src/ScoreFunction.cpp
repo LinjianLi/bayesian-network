@@ -35,7 +35,7 @@ double ScoreFunction::LogLikelihoodForNode(Node *node_ptr) {
   // Use the notation like the papers (e.g. r_i, q_i, N_ij, N_ijk).
   const int index = node_ptr->GetNodeIndex();
   auto d_node_ptr = dynamic_cast<DiscreteNode*>(node_ptr);
-  const int &r_i = d_node_ptr->num_potential_vals;
+  const int &r_i = d_node_ptr->GetDomainSize();
   double log_likelihood = 0;
   if (!node_ptr->set_parents_ptrs.empty()) {
 
@@ -119,7 +119,7 @@ double ScoreFunction::LogLikelihood() {
 double ScoreFunction::LogK2ForNode(Node *node_ptr) {
   const int &node_index = node_ptr->GetNodeIndex();
   auto d_node_ptr = dynamic_cast<DiscreteNode*>(node_ptr);
-  const int &r_i = d_node_ptr->num_potential_vals;
+  const int &r_i = d_node_ptr->GetDomainSize();
 
   double sum_over_j = 0;
 
@@ -225,7 +225,7 @@ double ScoreFunction::K2() {
 double ScoreFunction::LogBDeuForNode(Node *node_ptr, int equi_sample_size) {
   const int &node_index = node_ptr->GetNodeIndex();
   auto d_node_ptr = dynamic_cast<DiscreteNode*>(node_ptr);
-  const int &r_i = d_node_ptr->num_potential_vals;
+  const int &r_i = d_node_ptr->GetDomainSize();
   double sum_over_j = 0;
 
   if (!node_ptr->set_parents_ptrs.empty()) {

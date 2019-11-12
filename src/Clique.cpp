@@ -37,7 +37,7 @@ Clique::Clique(set<Node*> set_node_ptr, int elim_var_index) {
     if (n->is_discrete) {
       auto dn = dynamic_cast<DiscreteNode*>(n);
       DiscreteConfig c;
-      for (int i = 0; i < dn->num_potential_vals; ++i) {
+      for (int i = 0; i < dn->GetDomainSize(); ++i) {
         c.insert(pair<int, int>(n->GetNodeIndex(), dn->potential_vals[i]));
       }
       set_of_sets.insert(c);
