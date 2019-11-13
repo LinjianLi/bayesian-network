@@ -108,7 +108,7 @@ void ChowLiuTree::StructLearnChowLiuTreeCompData(Dataset *dts, bool print_struct
   root_node_index = dts->class_var_index;
   // Assign an index for each node.
   #pragma omp parallel for
-  for (int i = 0; i<num_nodes; ++i) {
+  for (int i = 0; i < num_nodes; ++i) {
 
     DiscreteNode *node_ptr = new DiscreteNode(i);  // For now, only support discrete node.
 
@@ -122,7 +122,9 @@ void ChowLiuTree::StructLearnChowLiuTreeCompData(Dataset *dts, bool print_struct
     }
 
     #pragma omp critical
-    { set_node_ptr_container.insert(node_ptr); }
+    {
+      map_idx_node_ptr[i] = node_ptr;
+    }
   }
 
   cout << "==================================================" << '\n'
@@ -145,7 +147,8 @@ void ChowLiuTree::StructLearnChowLiuTreeCompData(Dataset *dts, bool print_struct
         // To calculate the mutual information, we need to find the nodes which correspond to the indexes i and j.
         Node* Xi = nullptr;
         Node* Xj = nullptr;
-        for (auto node_ptr : set_node_ptr_container) {
+        for (auto id_node_ptr : map_idx_node_ptr) {
+          auto node_ptr = id_node_ptr.second;
           if (node_ptr->GetNodeIndex()==i && Xi==nullptr) {
             Xi = node_ptr;
           } else if (node_ptr->GetNodeIndex()==j && Xj==nullptr) {
@@ -232,18 +235,7 @@ void ChowLiuTree::StructLearnChowLiuTreeCompData(Dataset *dts, bool print_struct
   cout << "==================================================" << '\n'
        << "Generating parents combinations for each node......" << endl;
 
-  // Store the pointers in an array to make use of OpenMP.
-  Node** arr_node_ptr_container = new Node*[num_nodes];
-  auto iter_n_ptr = set_node_ptr_container.begin();
-  for (int i=0; i<num_nodes; ++i) {
-    arr_node_ptr_container[i] = *(iter_n_ptr++);
-  }
-  #pragma omp parallel for
-  for (int i=0; i<num_nodes; ++i) {
-    arr_node_ptr_container[i]->GenDiscParCombs();
-  }
-  delete[] arr_node_ptr_container;
-
+  GenDiscParCombsForAllNodes();
 
   cout << "==================================================" << '\n'
        << "Finish structural learning." << endl;

@@ -448,7 +448,8 @@ void JunctionTree::AssignPotentials() {
   // Extract the CG regressions of continuous nodes.
   vector<Factor> factors; // Can not use std::set, because Factor does not have definition on operator "<".
   vector<CGRegression> cgrs;
-  for (auto &node_ptr : network->set_node_ptr_container) {
+  for (auto &id_node_ptr : network->map_idx_node_ptr) {
+    auto node_ptr = id_node_ptr.second;
     if (node_ptr->is_discrete) {
       factors.push_back(Factor(dynamic_cast<DiscreteNode*>(node_ptr)));
     } else {  // If the node is continuous.

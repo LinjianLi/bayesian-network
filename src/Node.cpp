@@ -26,6 +26,36 @@ int Node::GetNumChildren() const {
   return set_children_indexes.size();
 }
 
+int Node::GetNumParentsConfig() {
+  if (num_parents_config < 0) {
+    num_parents_config = 1;
+    for (auto const &par : vec_disc_parent_indexes) {
+      // If the node has no parent, this for loop will not be executed.
+      // And the number of parents config will be 1.
+      num_parents_config *= map_disc_parents_domain_size[par];
+    }
+  }
+  return num_parents_config;
+}
+
+int Node::GetParConfigGivenParValueIndexes(vector<int> &par_val_indexes) {
+  int config = 0;
+  for (int i = 0; i < GetNumParents(); ++i) {
+    config *= map_disc_parents_domain_size[vec_disc_parent_indexes.at(i)];
+    config += par_val_indexes.at(i);
+  }
+  return config;
+}
+
+int Node::GetParConfigGivenAllVarValueIndexes(vector<int> &all_var_val_indexes) {
+  vector<int> par_val_indexes;
+  par_val_indexes.reserve(vec_disc_parent_indexes.size());
+  for (auto const par : vec_disc_parent_indexes) {
+    par_val_indexes.push_back(all_var_val_indexes.at(par));
+  }
+  return GetParConfigGivenParValueIndexes(par_val_indexes);
+}
+
 
 void Node::SetNodeIndex(int i) {
   if (i<0) {

@@ -109,8 +109,8 @@ double ScoreFunction::LogLikelihoodForNode(Node *node_ptr) {
 double ScoreFunction::LogLikelihood() {
   // todo: check the correctness
   double log_likelihood = 0;
-  for (auto &node_ptr : network->set_node_ptr_container) {
-    log_likelihood += LogLikelihoodForNode(node_ptr);
+  for (const auto &id_node_ptr : network->map_idx_node_ptr) {
+    log_likelihood += LogLikelihoodForNode(id_node_ptr.second);
   }
   return log_likelihood;
 }
@@ -206,8 +206,8 @@ double ScoreFunction::LogK2() {
 
   double sum_over_i = 0;
 
-  for (const auto &node_ptr : network->set_node_ptr_container) {
-    double sum_over_j = LogK2ForNode(node_ptr);
+  for (const auto &id_node_ptr : network->map_idx_node_ptr) {
+    double sum_over_j = LogK2ForNode(id_node_ptr.second);
     sum_over_i += sum_over_j;
   }
 
@@ -324,8 +324,8 @@ double ScoreFunction::LogBDeu(int equi_sample_size) {
 
   double sum_over_i = 0;
 
-  for (const auto &node_ptr : network->set_node_ptr_container) {
-    double sum_over_j = LogBDeuForNode(node_ptr, equi_sample_size);
+  for (const auto &id_node_ptr : network->map_idx_node_ptr) {
+    double sum_over_j = LogBDeuForNode(id_node_ptr.second, equi_sample_size);
     sum_over_i += sum_over_j;
   }
 
@@ -349,8 +349,9 @@ double ScoreFunction::AICForNode(Node *node) {
 double ScoreFunction::AIC() {
   // todo: check the correctness
   double result = 0;
-  for (auto n : network->set_node_ptr_container) {
-    result += AICForNode(n);
+//  for (auto n : network->set_node_ptr_container) {
+  for (auto id_np : network->map_idx_node_ptr) {
+    result += AICForNode(id_np.second);
   }
   return result;
 }
@@ -375,8 +376,9 @@ double ScoreFunction::MDLForNode(Node *node) {
 double ScoreFunction::MDL() {
   // todo: check the correctness
   double result = 0;
-  for (auto n : network->set_node_ptr_container) {
-    result += MDLForNode(n);
+//  for (auto n : network->set_node_ptr_container) {
+  for (auto id_np : network->map_idx_node_ptr) {
+    result += MDLForNode(id_np.second);
   }
   return result;
 }

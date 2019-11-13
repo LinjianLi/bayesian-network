@@ -22,11 +22,12 @@ class Node {
  protected:
 
   // Indexes for all nodes in a network should start at 0.
-  int node_index;
+  int node_index = -1;
+  int num_parents_config = -1;
 
  public:
 
-  string node_name;
+  string node_name = "";
   bool is_discrete;
 
   set<Node*> set_parents_ptrs;
@@ -39,6 +40,10 @@ class Node {
   map<int, int> map_disc_parents_domain_size;  // Key: parent index. Value: parent's domain size.
 
   set<int> set_children_indexes;
+
+  int GetNumParentsConfig();
+  int GetParConfigGivenParValueIndexes(vector<int> &par_val_indexes);   // The process of getting "iCPT" in Weka.
+  int GetParConfigGivenAllVarValueIndexes(vector<int> &all_var_val_indexes);   // The process of getting "iCPT" in Weka.
   // ==================================================
 
   Node() = default;

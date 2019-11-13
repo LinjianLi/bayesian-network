@@ -32,7 +32,7 @@ void CustomNetwork::GetNetFromXMLBIFFile(string file_path) {
   network_name = xbp.xml_network_name_ptr->GetText();
   num_nodes = connected_nodes.size();
   for (auto &node_ptr : connected_nodes) {
-    set_node_ptr_container.insert(node_ptr);
+    map_idx_node_ptr[node_ptr->GetNodeIndex()] = node_ptr;
   }
 
   GenTopoOrd();

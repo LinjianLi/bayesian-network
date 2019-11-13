@@ -34,9 +34,12 @@ class Network {
   string network_name;
   int num_nodes;
   bool pure_discrete;
-  set<Node*> set_node_ptr_container;
-
   int *default_elim_ord;
+
+  // =============== refactor like Weka ===============
+  map<int, Node*> map_idx_node_ptr;  // Key: node index. Value: node pointer.
+  // ==================================================
+
   Network();
   explicit Network(bool pure_disc);
   virtual ~Network() = default;
@@ -59,6 +62,7 @@ class Network {
   void ClearParams();
 
   void AddNode(Node *node_ptr);
+  void RemoveNode(int node_index);
 
   void SetParentChild(int, int);
   void SetParentChild(Node *par, Node *chi);
