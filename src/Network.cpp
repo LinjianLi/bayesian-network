@@ -18,7 +18,7 @@ void Network::PrintEachNodeParents() {
   for (const auto &id_node_ptr : map_idx_node_ptr) {
     auto node_ptr = id_node_ptr.second;
     cout << node_ptr->node_name << ":\t";
-    for (const auto &par_node_ptr : node_ptr->set_parents_ptrs) {
+    for (const auto &par_node_ptr : GetParentPtrsOfNode(node_ptr->GetNodeIndex())) {
       cout << par_node_ptr->node_name << '\t';
     }
     cout << endl;
@@ -29,27 +29,19 @@ void Network::PrintEachNodeChildren() {
   for (const auto &id_node_ptr : map_idx_node_ptr) {
     auto node_ptr = id_node_ptr.second;
     cout << node_ptr->node_name << ":\t";
-    for (const auto &par_node_ptr : node_ptr->set_children_ptrs) {
-      cout << par_node_ptr->node_name << '\t';
+    for (const auto &chi_node_ptr : GetChildrenPtrsOfNode(node_ptr->GetNodeIndex())) {
+      cout << chi_node_ptr->node_name << '\t';
     }
     cout << endl;
   }
 }
 
 Node* Network::FindNodePtrByIndex(const int &index) const {
-  if (index < 0 || index > num_nodes) {
+  if (index < 0 || index >= num_nodes) {  // The node indexes are consecutive integers start at 0.
     fprintf(stderr, "Error in function %s! \nInvalid index [%d]!", __FUNCTION__, index);
     exit(1);
   }
-  Node* node_ptr = nullptr;
-  for (const auto i_n_ptr : map_idx_node_ptr) {
-    auto n_ptr = i_n_ptr.second;
-    if (n_ptr->GetNodeIndex()==index) {
-      node_ptr = n_ptr;
-      break;
-    }
-  }
-  return node_ptr;
+  return map_idx_node_ptr.at(index);
 }
 
 
@@ -73,10 +65,8 @@ void Network::ConstructNaiveBayesNetwork(Dataset *dts) {
   for (int i = 0; i < num_nodes; ++i) {
     DiscreteNode *node_ptr = new DiscreteNode(i);  // For now, only support discrete node.
     node_ptr->SetDomainSize(dts->num_of_possible_values_of_disc_vars[i]);
-    node_ptr->potential_vals = new int[node_ptr->GetDomainSize()];
-    int j = 0;
     for (auto v : dts->map_disc_vars_possible_values[i]) {
-      node_ptr->potential_vals[j++] = v;
+      node_ptr->vec_potential_vals.push_back(v);
     }
 #pragma omp critical
     {
@@ -96,10 +86,10 @@ void Network::ConstructNaiveBayesNetwork(Dataset *dts) {
 
   // Generate topological ordering and default elimination ordering.
   vector<int> topo = GetTopoOrd();
-  this->default_elim_ord = new int[num_nodes - 1];
+  vec_default_elim_ord.reserve(num_nodes - 1);
 #pragma omp parallel for
-  for (int i=0; i<num_nodes-1; ++i) {
-    default_elim_ord[i] = topo.at(num_nodes-1-i);
+  for (int i = 0; i < num_nodes-1; ++i) {
+    vec_default_elim_ord.push_back(topo.at(num_nodes-1-i));
   }
 }
 
@@ -125,10 +115,8 @@ void Network::StructLearnCompData(Dataset *dts, bool print_struct, string topo_o
       node_ptr->node_name = to_string(i);
     }
     node_ptr->SetDomainSize(dts->num_of_possible_values_of_disc_vars[i]);
-    node_ptr->potential_vals = new int[node_ptr->GetDomainSize()];
-    int j = 0;
     for (auto v : dts->map_disc_vars_possible_values[i]) {
-      node_ptr->potential_vals[j++] = v;
+      node_ptr->vec_potential_vals.push_back(v);
     }
     #pragma omp critical
     {
@@ -232,6 +220,25 @@ void Network::RemoveParentChild(Node *p, Node *c) {
   c->RemoveParent(p);
 }
 
+set<Node*> Network::GetParentPtrsOfNode(int node_index) {
+  set<Node*> set_par_ptrs;
+  Node *node = map_idx_node_ptr.at(node_index);
+  for (const auto &idx : node->set_parent_indexes) {
+    set_par_ptrs.insert(map_idx_node_ptr.at(idx));
+  }
+  return set_par_ptrs;
+}
+
+set<Node*> Network::GetChildrenPtrsOfNode(int node_index) {
+  set<Node*> set_chi_ptrs;
+  Node *node = map_idx_node_ptr.at(node_index);
+  for (const auto &idx : node->set_children_indexes) {
+    set_chi_ptrs.insert(map_idx_node_ptr.at(idx));
+  }
+  return set_chi_ptrs;
+}
+
+
 void Network::GenDiscParCombsForAllNodes() {
   for (auto id_np : this->map_idx_node_ptr) {
     id_np.second->GenDiscParCombs();
@@ -261,7 +268,7 @@ vector<int> Network::GenTopoOrd() {
     for (int i=0; i<num_nodes; ++i) {graph[i] = new int[num_nodes]();}
     for (auto &i_n_p : map_idx_node_ptr) {
       auto n_p = i_n_p.second;
-      for (auto &c_p : n_p->set_children_ptrs) {
+      for (auto &c_p : GetChildrenPtrsOfNode(n_p->GetNodeIndex())) {
         graph[n_p->GetNodeIndex()][c_p->GetNodeIndex()] = 1;
       }
     }
@@ -307,7 +314,7 @@ vector<int> Network::GenTopoOrd() {
       ++disc_ord;
     }
     for (const auto &n_p : set_disc_node_ptr) {
-      for (const auto &c_p : n_p->set_children_ptrs) {
+      for (const auto &c_p : GetChildrenPtrsOfNode(n_p->GetNodeIndex())) {
         if (!c_p->is_discrete) { continue; }
         graph_disc[ disc_index_order[n_p->GetNodeIndex()] ]
                   [ disc_index_order[c_p->GetNodeIndex()] ] = 1;
@@ -324,7 +331,7 @@ vector<int> Network::GenTopoOrd() {
       ++cont_ord;
     }
     for (const auto &n_p : set_cont_node_ptr) {
-      for (const auto &c_p : n_p->set_children_ptrs) {
+      for (const auto &c_p : GetChildrenPtrsOfNode(n_p->GetNodeIndex())) {
         graph_cont[ cont_index_order[n_p->GetNodeIndex()] ]
                   [ cont_index_order[c_p->GetNodeIndex()] ] = 1;
       }
@@ -363,7 +370,7 @@ int** Network::ConvertDAGNetworkToAdjacencyMatrix() {
     auto node_ptr = id_node_ptr.second;
     int from, from2, to;
     from = node_ptr->GetNodeIndex();
-    for (auto &child_ptr : node_ptr->set_children_ptrs) {
+    for (auto &child_ptr : GetChildrenPtrsOfNode(node_ptr->GetNodeIndex())) {
       to = child_ptr->GetNodeIndex();
       adjac_matrix[from][to] = 1;
     }
@@ -392,7 +399,7 @@ void Network::LearnParamsKnowStructCompData(const Dataset *dts, int alpha, bool 
          ++i) {
 //    for (int i=0; i<dts->num_vars; ++i) {
       DiscreteNode *this_node = dynamic_cast<DiscreteNode*>(FindNodePtrByIndex(i));   // todo: support continuous node
-      if (this_node->set_parents_ptrs.empty()) {
+      if (this_node->set_parent_indexes.empty()) {
 
         map<int, double> *MPT = &(dynamic_cast<DiscreteNode*>(this_node)->map_marg_prob_table);
         int denominator = dts->num_instance;
@@ -401,7 +408,7 @@ void Network::LearnParamsKnowStructCompData(const Dataset *dts, int alpha, bool 
           (*MPT)[query] += 1;
         }
         for (int ii = 0; ii < this_node->GetDomainSize(); ++ii) {
-          int query = this_node->potential_vals[ii];
+          int query = this_node->vec_potential_vals.at(ii);
           // Laplace smoothing.
           (*MPT)[query] = ((*MPT)[query] + alpha) / (denominator + alpha * this_node->GetDomainSize());
         }
@@ -430,7 +437,7 @@ void Network::LearnParamsKnowStructCompData(const Dataset *dts, int alpha, bool 
           }
           // Normalize so that the sum is 1.
           for (int j = 0; j < this_node->GetDomainSize(); ++j) {
-            int query = this_node->potential_vals[j];
+            int query = this_node->vec_potential_vals.at(j);
             // Laplace smoothing.
             (*CPT)[query][par_comb] = ((*CPT)[query][par_comb] + alpha) / (denominator + alpha * this_node->GetDomainSize());
           }
@@ -484,7 +491,7 @@ void Network::ClearParams() {
 }
 
 
-pair<int*, int> Network::SimplifyDefaultElimOrd(DiscreteConfig) {
+vector<int> Network::SimplifyDefaultElimOrd(DiscreteConfig) {
   fprintf(stderr, "Function [%s] not implemented yet!", __FUNCTION__);
   exit(1);
 }
@@ -501,11 +508,11 @@ DiscreteConfig Network::ConstructEvidence(int *nodes_indexes, int *observations,
 }
 
 
-vector<Factor> Network::ConstructFactors(int *Z, int nz, Node *Y) {
+vector<Factor> Network::ConstructFactors(vector<int> Z, Node *Y) {
   vector<Factor> factors_list;
   factors_list.push_back(Factor(dynamic_cast<DiscreteNode*>(Y)));
-  for (int i=0; i<nz; ++i) {
-    Node* n = FindNodePtrByIndex(Z[i]);
+  for (int i = 0; i < Z.size(); ++i) {
+    Node* n = FindNodePtrByIndex(Z.at(i));
     factors_list.push_back(Factor(dynamic_cast<DiscreteNode*>(n)));
   }
   return factors_list;
@@ -563,10 +570,10 @@ void Network::LoadEvidenceIntoFactors(vector<Factor> *factors_list, DiscreteConf
 }
 
 
-Factor Network::SumProductVarElim(vector<Factor> factors_list, int *Z, int nz) {
-  for (int i=0; i<nz; ++i) {
+Factor Network::SumProductVarElim(vector<Factor> factors_list, vector<int> Z) {
+  for (int i = 0; i < Z.size(); ++i) {
     vector<Factor> tempFactorsList;
-    Node* nodePtr = FindNodePtrByIndex(Z[i]);
+    Node* nodePtr = FindNodePtrByIndex(Z.at(i));
     // Move every factor that is related to the node Z[i] from factors_list to tempFactorsList.
     /*
      * Note: This for loop does not contain "++it" in the parentheses.
@@ -623,10 +630,10 @@ Factor Network::SumProductVarElim(vector<Factor> factors_list, int *Z, int nz) {
 }
 
 
-Factor Network::VarElimInferReturnPossib(int *Z, int nz, DiscreteConfig E, Node *Y) {
+Factor Network::VarElimInferReturnPossib(vector<int> Z, DiscreteConfig E, Node *Y) {
   // Z is the array of variable elimination order.
   // E is the evidences.
-  vector<Factor> factorsList = ConstructFactors(Z, nz, Y);
+  vector<Factor> factorsList = ConstructFactors(Z, Y);
 
   //--------------------------------------------------------------------------------
   // This block is to fix the bug occurring when the target node
@@ -639,32 +646,35 @@ Factor Network::VarElimInferReturnPossib(int *Z, int nz, DiscreteConfig E, Node 
   // still appears in the constructed factor of the parent which is "B".
   set<int> all_related_vars;
   all_related_vars.insert(Y->GetNodeIndex());
-  for (int i=0; i<nz; ++i) {all_related_vars.insert(Z[i]);}
+  for (int i = 0; i < Z.size(); ++i) { all_related_vars.insert(Z.at(i)); }
   //--------------------------------------------------------------------------------
 
 
   LoadEvidenceIntoFactors(&factorsList, E, all_related_vars);
-  Factor F = SumProductVarElim(factorsList, Z, nz);
+  Factor F = SumProductVarElim(factorsList, Z);
   F.Normalize();
   return F;
 }
 
 
 Factor Network::VarElimInferReturnPossib(DiscreteConfig E, Node *Y) {
-  pair<int*, int> simplified_elimination_order = SimplifyDefaultElimOrd(E);
+  vector<int> vec_simplified_elimination_order = SimplifyDefaultElimOrd(E);
+  int *simplified_elimination_order = new int[vec_simplified_elimination_order.size()];
+  for (int i = 0; i < vec_simplified_elimination_order.size(); ++i) {
+    simplified_elimination_order[i] = vec_simplified_elimination_order.at(i);
+  }
 //  pair<int*, int> simplified_elimination_order = pair<int*, int>(default_elim_ord, num_nodes-1);
   return this->VarElimInferReturnPossib(
-                  simplified_elimination_order.first,
-                  simplified_elimination_order.second,
+                  vec_simplified_elimination_order,
                   E,
                   Y
                );
 }
 
 
-int Network::PredictUseVarElimInfer(int *Z, int nz, DiscreteConfig E, int Y_index) {
+int Network::PredictUseVarElimInfer(vector<int> Z, DiscreteConfig E, int Y_index) {
   Node *Y = FindNodePtrByIndex(Y_index);
-  Factor F = VarElimInferReturnPossib(Z, nz, E, Y);
+  Factor F = VarElimInferReturnPossib(Z, E, Y);
   double max_prob = 0;
   DiscreteConfig comb_predict;
   for (auto &comb : F.set_combinations) {
@@ -925,9 +935,9 @@ pair<DiscreteConfig, double> Network::DrawOneLikelihoodWeightingSample(const Dis
         // Set the sample value to be the same as the evidence.
         instance.insert(pair<int, int>(index, p.second));
         // Update the weight.
-        if(!n_p->set_parents_ptrs.empty()) {
+        if(!n_p->set_parent_indexes.empty()) {
           set<int> parents_indexes;
-          for (const auto &par : n_p->set_parents_ptrs) {
+          for (const auto &par : GetParentPtrsOfNode(n_p->GetNodeIndex())) {
             parents_indexes.insert(par->GetNodeIndex());
           }
           DiscreteConfig parents_index_value;
@@ -969,7 +979,7 @@ Factor Network::CalcuMargWithLikelihoodWeightingSamples(const vector<pair<Discre
 
   // Initialize the map.
   for (int i=0; i<n_p->GetDomainSize(); ++i) {
-    value_weight[n_p->potential_vals[i]] = 0;
+    value_weight[n_p->vec_potential_vals.at(i)] = 0;
   }
 
   // Calculate the sum of weight for each value. Un-normalized.
@@ -998,7 +1008,7 @@ Factor Network::CalcuMargWithLikelihoodWeightingSamples(const vector<pair<Discre
   set<DiscreteConfig> sc;
   for (int i=0; i<n_p->GetDomainSize(); ++i) {
     DiscreteConfig c;
-    c.insert(pair<int, int>(node_index, n_p->potential_vals[i]));
+    c.insert(pair<int, int>(node_index, n_p->vec_potential_vals.at(i)));
     sc.insert(c);
   }
   map<DiscreteConfig, double> mp;
@@ -1044,14 +1054,14 @@ set<int> Network::GetMarkovBlanketIndexesOfNode(Node *node_ptr) {
   set<int> markov_blanket_node_index;
 
   // Add parents.
-  for (auto &par_ptr : node_ptr->set_parents_ptrs) {
+  for (auto &par_ptr : GetParentPtrsOfNode(node_ptr->GetNodeIndex())) {
     markov_blanket_node_index.insert(par_ptr->GetNodeIndex());
   }
 
   // Add children and parents of children.
-  for (auto &chil_ptr : node_ptr->set_children_ptrs) {
+  for (auto &chil_ptr : GetChildrenPtrsOfNode(node_ptr->GetNodeIndex())) {
     markov_blanket_node_index.insert(chil_ptr->GetNodeIndex());
-    for (auto &par_chil_ptr : chil_ptr->set_parents_ptrs) {
+    for (auto &par_chil_ptr : GetParentPtrsOfNode(chil_ptr->GetNodeIndex())) {
       markov_blanket_node_index.insert(par_chil_ptr->GetNodeIndex());
     }
   }
@@ -1099,7 +1109,7 @@ vector<DiscreteConfig> Network::DrawSamplesByGibbsSamp(int num_samp, int num_bur
     for (auto p : single_sample) {
       if (p.first == node_ptr->GetNodeIndex()) {
         single_sample.erase(p);
-        p.second = dynamic_cast<DiscreteNode*>(node_ptr)->potential_vals[value_index];
+        p.second = dynamic_cast<DiscreteNode*>(node_ptr)->vec_potential_vals.at(value_index);
         single_sample.insert(p);
         break;
       }
@@ -1116,18 +1126,18 @@ vector<DiscreteConfig> Network::DrawSamplesByGibbsSamp(int num_samp, int num_bur
 
 int Network::SampleNodeGivenMarkovBlanketReturnValIndex(Node *node_ptr, DiscreteConfig markov_blanket) {
   int num_elim_ord = markov_blanket.size();
-  int *var_elim_ord = new int[num_elim_ord];
-  int temp = 0;
+  vector<int> var_elim_ord;
+  var_elim_ord.reserve(markov_blanket.size());
   for (auto &n_v : markov_blanket) {
-    var_elim_ord[temp++] = n_v.first;
+    var_elim_ord.push_back(n_v.first);
   }
 
-  Factor f = VarElimInferReturnPossib(var_elim_ord, num_elim_ord, markov_blanket, node_ptr);
+  Factor f = VarElimInferReturnPossib(var_elim_ord, markov_blanket, node_ptr);
 
   vector<int> weights;
   for (int i=0; i<dynamic_cast<DiscreteNode*>(node_ptr)->GetDomainSize(); ++i) {
     DiscreteConfig temp;
-    temp.insert(pair<int,int>(node_ptr->GetNodeIndex(),dynamic_cast<DiscreteNode*>(node_ptr)->potential_vals[i]));
+    temp.insert(pair<int,int>(node_ptr->GetNodeIndex(),dynamic_cast<DiscreteNode*>(node_ptr)->vec_potential_vals.at(i)));
     weights.push_back(f.map_potentials[temp]*10000);
   }
 
@@ -1141,7 +1151,7 @@ int Network::SampleNodeGivenMarkovBlanketReturnValIndex(Node *node_ptr, Discrete
 int Network::ApproxInferByProbLogiRejectSamp(DiscreteConfig e, Node *node, vector<DiscreteConfig> &samples) {
   DiscreteConfig possb_values;
   for (int i=0; i<dynamic_cast<DiscreteNode*>(node)->GetDomainSize(); ++i) {
-    possb_values.insert(pair<int,int>(node->GetNodeIndex(),dynamic_cast<DiscreteNode*>(node)->potential_vals[i]));
+    possb_values.insert(pair<int,int>(node->GetNodeIndex(),dynamic_cast<DiscreteNode*>(node)->vec_potential_vals.at(i)));
   }
 
   int *count_each_value = new int[this->num_nodes]();
@@ -1163,7 +1173,7 @@ int Network::ApproxInferByProbLogiRejectSamp(DiscreteConfig e, Node *node, vecto
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     default_random_engine rand_gen(seed);
     uniform_int_distribution<int> this_distribution(0,dynamic_cast<DiscreteNode*>(node)->GetDomainSize()-1);
-    return dynamic_cast<DiscreteNode*>(node)->potential_vals[this_distribution(rand_gen)];
+    return dynamic_cast<DiscreteNode*>(node)->vec_potential_vals.at(this_distribution(rand_gen));
   }
 
   // Find the argmax.
@@ -1177,7 +1187,7 @@ int Network::ApproxInferByProbLogiRejectSamp(DiscreteConfig e, Node *node, vecto
   }
 
   // Return the predicted label instead of the index.
-  return dynamic_cast<DiscreteNode*>(node)->potential_vals[lable_index_predict];
+  return dynamic_cast<DiscreteNode*>(node)->vec_potential_vals.at(lable_index_predict);
 }
 
 

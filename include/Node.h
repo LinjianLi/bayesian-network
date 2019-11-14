@@ -31,7 +31,6 @@ class Node {
   bool is_discrete;
 
   set<Node*> set_parents_ptrs;
-  set<Node*> set_children_ptrs;
   set<DiscreteConfig> set_discrete_parents_combinations;
 
   // =============== refactor like Weka ===============

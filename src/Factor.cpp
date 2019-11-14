@@ -35,12 +35,12 @@ void Factor::ConstructFactor(DiscreteNode *node) {
     DiscreteConfig comb_temp;
     pair<int, int> pair_temp;
     pair_temp.first = node_index;
-    pair_temp.second = node->potential_vals[i];
+    pair_temp.second = node->vec_potential_vals.at(i);
     set_pair_temp.insert(pair_temp);
   }
 
   // If this node has no parents.
-  if (node->set_parents_ptrs.empty()) {
+  if (node->set_parent_indexes.empty()) {
     for (auto &p : set_pair_temp) {
       DiscreteConfig c;
       c.insert(p);

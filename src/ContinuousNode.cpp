@@ -24,9 +24,8 @@ void ContinuousNode::AddChild(Node *c) {
                     "Continuous node must not have discrete child!", __FUNCTION__);
     exit(1);
   }
-  set_children_ptrs.insert(c);
   int c_idx = c->GetNodeIndex();
-  if (set_children_indexes.find(c_idx) != set_children_indexes.end()) {
+  if (set_children_indexes.find(c_idx) == set_children_indexes.end()) {
     set_children_indexes.insert(c_idx);
   }
 }
@@ -35,7 +34,7 @@ void ContinuousNode::AddParent(Node *p) {
   set_parents_ptrs.insert(p);
 
   int p_idx = p->GetNodeIndex();
-  if (set_parent_indexes.find(p_idx) != set_parent_indexes.end()) {
+  if (set_parent_indexes.find(p_idx) == set_parent_indexes.end()) {
     set_parent_indexes.insert(p_idx);
     vec_disc_parent_indexes.push_back(p_idx);
     if (p->is_discrete) {
@@ -47,8 +46,9 @@ void ContinuousNode::AddParent(Node *p) {
 }
 
 void ContinuousNode::RemoveParent(Node *p) {
-  if (set_parents_ptrs.find(p)==set_parents_ptrs.end()) {
-    fprintf(stderr, "Node #%d does not have parent node #%d!", this->GetNodeIndex(), p->GetNodeIndex());
+  int p_idx = p->GetNodeIndex();
+  if (set_parent_indexes.find(p_idx)==set_parent_indexes.end()) {
+    fprintf(stderr, "Node #%d does not have parent node #%d!", this->GetNodeIndex(), p_idx);
     return;
   }
   set_parents_ptrs.erase(p);
@@ -57,7 +57,6 @@ void ContinuousNode::RemoveParent(Node *p) {
     while (*it!=p->GetNodeIndex()) { ++it; }
     contin_par_indexes.erase(it);
   }
-  int p_idx = p->GetNodeIndex();
   set_parent_indexes.erase(p_idx);
   vec_disc_parent_indexes.erase(std::find(vec_disc_parent_indexes.begin(), vec_disc_parent_indexes.end(), p_idx));
 }

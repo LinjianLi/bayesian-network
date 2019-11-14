@@ -133,7 +133,7 @@ TEST_F(NetworkTest, jun_tree_accuracy) {
 }
 
 
-TEST_F(NetworkTest, DISABLED_likelihood_weighting_accuracy) {
+TEST_F(NetworkTest, likelihood_weighting_accuracy) {
   ScoreFunction sf(network, trainer);
   double accuracy = network->TestAccuracyByLikelihoodWeighting(tester, 50);
   EXPECT_GT(accuracy,0.6);
@@ -148,26 +148,8 @@ TEST_F(NetworkTest, DISABLED_score_usability) {
   EXPECT_GT(sf->K2(),-INT32_MAX);
 }
 
-TEST_F(NetworkTest, DISABLED_score_comparison) {
-  auto *sf1 = new ScoreFunction(network,trainer);
-  double score1 = sf1->BDeu();
 
-  for (auto &i_n : network->map_idx_node_ptr) {
-    auto n = i_n.second;
-    if (0==n->GetNodeIndex()) {continue;}
-    if (0==(*n->set_parents_ptrs.begin())->GetNodeIndex()) {
-      continue;
-    }
-    n->set_discrete_parents_combinations.clear();
-  }
-
-  auto *sf2 = new ScoreFunction(network,trainer);
-  double score2 = sf2->BDeu();
-
-  EXPECT_GT(score1,score2);
-}
-
-TEST_F(NetworkTest, DISABLED_sampling_node) {
+TEST_F(NetworkTest, sampling_node) {
   Node *n_39 = network->FindNodePtrByIndex(39);
   //Factor fac(n_39);
   //fac.PrintPotentials();

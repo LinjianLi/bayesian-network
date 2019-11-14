@@ -37,7 +37,7 @@ double ScoreFunction::LogLikelihoodForNode(Node *node_ptr) {
   auto d_node_ptr = dynamic_cast<DiscreteNode*>(node_ptr);
   const int &r_i = d_node_ptr->GetDomainSize();
   double log_likelihood = 0;
-  if (!node_ptr->set_parents_ptrs.empty()) {
+  if (!node_ptr->set_parent_indexes.empty()) {
 
 
     // For every "j".
@@ -64,7 +64,7 @@ double ScoreFunction::LogLikelihoodForNode(Node *node_ptr) {
 
       // For every "k"
       for (int k=0; k<r_i; ++k){
-        int val = d_node_ptr->potential_vals[k];
+        int val = d_node_ptr->vec_potential_vals.at(k);
 
         int n_ijk = 0;
 
@@ -87,7 +87,7 @@ double ScoreFunction::LogLikelihoodForNode(Node *node_ptr) {
     int n_ij = dataset->num_instance;
 
     for (int k=0; k<r_i; ++k){
-      int val = d_node_ptr->potential_vals[k];
+      int val = d_node_ptr->vec_potential_vals.at(k);
 
       int n_ijk = 0;
 
@@ -123,7 +123,7 @@ double ScoreFunction::LogK2ForNode(Node *node_ptr) {
 
   double sum_over_j = 0;
 
-  if (!node_ptr->set_parents_ptrs.empty()) {
+  if (!node_ptr->set_parent_indexes.empty()) {
 
 
     for (const auto &par_comb : node_ptr->set_discrete_parents_combinations) {
@@ -151,7 +151,7 @@ double ScoreFunction::LogK2ForNode(Node *node_ptr) {
       for (int k = 0; k < r_i; ++k) {
         int n_ijk = 0;
         for (const auto &s : set_instances_parent_compatible) {
-          int val = d_node_ptr->potential_vals[k];
+          int val = d_node_ptr->vec_potential_vals.at(k);
           // Check this node.
           if (dataset->dataset_all_vars[s][node_index] == val) { ++n_ijk; }
         }
@@ -176,7 +176,7 @@ double ScoreFunction::LogK2ForNode(Node *node_ptr) {
     for (int k = 0; k < r_i; ++k) {
       int n_ijk = 0;
       for (int s=0; s < dataset->num_instance; ++s) {
-        int val = d_node_ptr->potential_vals[k];
+        int val = d_node_ptr->vec_potential_vals.at(k);
         // Check this node.
         if (dataset->dataset_all_vars[s][node_index] == val) { ++n_ijk; }
       }
@@ -228,7 +228,7 @@ double ScoreFunction::LogBDeuForNode(Node *node_ptr, int equi_sample_size) {
   const int &r_i = d_node_ptr->GetDomainSize();
   double sum_over_j = 0;
 
-  if (!node_ptr->set_parents_ptrs.empty()) {
+  if (!node_ptr->set_parent_indexes.empty()) {
 
     const int &q_i = node_ptr->set_discrete_parents_combinations.size();
     for (const auto &par_comb : node_ptr->set_discrete_parents_combinations) {
@@ -256,7 +256,7 @@ double ScoreFunction::LogBDeuForNode(Node *node_ptr, int equi_sample_size) {
       for (int k = 0; k < r_i; ++k) {
         int n_ijk = 0;
         for (const auto &s : set_instances_parent_compatible) {
-          int val = d_node_ptr->potential_vals[k];
+          int val = d_node_ptr->vec_potential_vals.at(k);
           // Check this node.
           n_ijk += (dataset->dataset_all_vars[s][node_index] == val) ? 1 : 0;
         }
@@ -287,7 +287,7 @@ double ScoreFunction::LogBDeuForNode(Node *node_ptr, int equi_sample_size) {
     for (int k = 0; k < r_i; ++k) {
       int n_ijk = 0;
       for (int s = 0; s < dataset->num_instance; ++s) {
-        int val = d_node_ptr->potential_vals[k];
+        int val = d_node_ptr->vec_potential_vals.at(k);
         // Check this node.
         n_ijk += (dataset->dataset_all_vars[s][node_index] == val) ? 1 : 0;
       }

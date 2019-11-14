@@ -17,8 +17,7 @@ using namespace std;
 
 class DiscreteNode : public Node {
  public:
-  int *potential_vals;
-  // The domain of a variable has an order if it is specified by an XMLBIF file.
+  // The order matters.
   vector<string> vec_str_potential_vals;
   vector<int> vec_potential_vals;
 

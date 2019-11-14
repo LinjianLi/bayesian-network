@@ -34,7 +34,7 @@ class Network {
   string network_name;
   int num_nodes;
   bool pure_discrete;
-  int *default_elim_ord;
+  vector<int> vec_default_elim_ord;
 
   // =============== refactor like Weka ===============
   map<int, Node*> map_idx_node_ptr;  // Key: node index. Value: node pointer.
@@ -70,6 +70,9 @@ class Network {
   void RemoveParentChild(int, int);
   void RemoveParentChild(Node *par, Node *chi);
 
+  set<Node*> GetParentPtrsOfNode(int node_index);
+  set<Node*> GetChildrenPtrsOfNode(int node_index);
+
   void GenDiscParCombsForAllNodes();
 
   vector<int> GetTopoOrd();
@@ -78,18 +81,18 @@ class Network {
   int** ConvertDAGNetworkToAdjacencyMatrix();
 
 
-  virtual pair<int*, int> SimplifyDefaultElimOrd(DiscreteConfig);
+  virtual vector<int> SimplifyDefaultElimOrd(DiscreteConfig);
 
   DiscreteConfig ConstructEvidence(int *nodes_indexes, int *observations, int num_of_observations);
 
-  vector<Factor> ConstructFactors(int *Z, int nz, Node *Y);
+  vector<Factor> ConstructFactors(vector<int> Z, Node *Y);
   void LoadEvidenceIntoFactors(vector<Factor> *factors_list, DiscreteConfig E, set<int> all_related_vars);
 
-  Factor SumProductVarElim(vector<Factor> factors_list, int *Z, int nz);
-  Factor VarElimInferReturnPossib(int *elim_ord, int num_elim_ord, DiscreteConfig evidence, Node *target);
+  Factor SumProductVarElim(vector<Factor> factors_list, vector<int> Z);
+  Factor VarElimInferReturnPossib(vector<int> elim_ord, DiscreteConfig evidence, Node *target);
   Factor VarElimInferReturnPossib(DiscreteConfig evidence, Node *target);
 
-  int PredictUseVarElimInfer(int *Z, int nz, DiscreteConfig E, int Y_index);
+  int PredictUseVarElimInfer(vector<int> Z, DiscreteConfig E, int Y_index);
   int PredictUseVarElimInfer(DiscreteConfig E, int Y_index);
 
   double TestNetReturnAccuracy(Dataset *dts);

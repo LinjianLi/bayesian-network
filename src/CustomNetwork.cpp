@@ -12,8 +12,8 @@ CustomNetwork::CustomNetwork(bool pure_disc) {
   this->pure_discrete = pure_disc;
 }
 
-pair<int*, int> CustomNetwork::SimplifyDefaultElimOrd(DiscreteConfig evidence) {
-  return {default_elim_ord, num_nodes-1};
+vector<int> CustomNetwork::SimplifyDefaultElimOrd(DiscreteConfig evidence) {
+  return vec_default_elim_ord;
 }
 
 void CustomNetwork::GetNetFromXMLBIFFile(string file_path) {

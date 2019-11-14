@@ -42,7 +42,7 @@ vector<Node*> XMLBIFParser::GetUnconnectedNodes() const {
   }
   vector<Node*> vec_node_ptrs;
   for (auto &xvp : vec_xml_vars_ptr) {
-    if (((string)xvp->FirstChildElement("TYPE")->GetText())=="discrete") {
+    if (((string)xvp->FirstChildElement("TYPE")->GetText()) == "discrete") {
 
       DiscreteNode *n_p = new DiscreteNode(vec_node_ptrs.size());
       n_p->node_name = xvp->FirstChildElement("NAME")->GetText();
@@ -53,9 +53,7 @@ vector<Node*> XMLBIFParser::GetUnconnectedNodes() const {
         xml_val_ptr = xml_val_ptr->NextSiblingElement("VALUE");
       }
       n_p->SetDomainSize(n_p->vec_str_potential_vals.size());
-      n_p->potential_vals = new int[n_p->GetDomainSize()];
-      for (int i=0; i<n_p->GetDomainSize(); ++i) {
-        n_p->potential_vals[i] = i;
+      for (int i = 0; i < n_p->GetDomainSize(); ++i) {
         n_p->vec_potential_vals.push_back(i);
       }
       vec_node_ptrs.push_back(n_p);
