@@ -30,7 +30,6 @@ class Node {
   string node_name = "";
   bool is_discrete;
 
-  set<Node*> set_parents_ptrs;
   set<DiscreteConfig> set_discrete_parents_combinations;
 
   // =============== refactor like Weka ===============
@@ -56,7 +55,7 @@ class Node {
   virtual void AddParent(Node *node_ptr);
   void RemoveChild(Node *node_ptr);
   virtual void RemoveParent(Node *node_ptr);
-  void GenDiscParCombs();
+  void GenDiscParCombs(set<Node*> set_parent_ptrs);
   void ClearParents();
   void ClearChildren();
   virtual int GetNumParams() const = 0;

@@ -48,7 +48,6 @@ void DiscreteNode::AddParent(Node *p) {
                     "Discrete node must not have continuous parent!", __FUNCTION__);
     exit(1);
   }
-  set_parents_ptrs.insert(p);
   int p_idx = p->GetNodeIndex();
   if (set_parent_indexes.find(p_idx) == set_parent_indexes.end()) {
     set_parent_indexes.insert(p_idx);
@@ -63,7 +62,7 @@ int DiscreteNode::GetNumParams() const {
 }
 
 void DiscreteNode::ClearParams() {
-  if (set_parents_ptrs.empty()) {
+  if (set_parent_indexes.empty()) {
     for (auto &kv : map_marg_prob_table) {
       kv.second = 0;
     }
@@ -109,13 +108,9 @@ void DiscreteNode::PrintProbabilityTable() {
 int DiscreteNode::SampleNodeGivenParents(DiscreteConfig evidence) {
   // The evidence should contain all parents of this node.
   // The evidence about other nodes (including children) are IGNORED!!!
-  set<int> set_par_indexes;
-  for (auto &par : set_parents_ptrs) {
-    set_par_indexes.insert(par->GetNodeIndex());
-  }
   DiscreteConfig par_evi;
   for (auto &e : evidence) {
-    if (set_par_indexes.find(e.first)!=set_par_indexes.end()) {
+    if (set_parent_indexes.find(e.first) != set_parent_indexes.end()) {
       par_evi.insert(e);
     }
   }

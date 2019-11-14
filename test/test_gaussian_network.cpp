@@ -45,11 +45,11 @@ class CGNetworkTest : public ::testing::Test {
 
 
 //    x->IdentifyContPar();
-    x->GenDiscParCombs();
+    x->GenDiscParCombs(net->GetParentPtrsOfNode(x->GetNodeIndex()));
 //    y->IdentifyContPar();
-    y->GenDiscParCombs();
+    y->GenDiscParCombs(net->GetParentPtrsOfNode(y->GetNodeIndex()));
 //    z->IdentifyContPar();
-    z->GenDiscParCombs();
+    z->GenDiscParCombs(net->GetParentPtrsOfNode(z->GetNodeIndex()));
 
     x->map_mu[*(x->set_discrete_parents_combinations.begin())] = 0;
     x->map_variance[*(x->set_discrete_parents_combinations.begin())] = 1;

@@ -75,7 +75,6 @@ void Node::AddChild(Node *c) {
 
 
 void Node::AddParent(Node *p) {
-  set_parents_ptrs.insert(p);
   int p_idx = p->GetNodeIndex();
   if (set_parent_indexes.find(p_idx) == set_parent_indexes.end()) {
     set_parent_indexes.insert(p_idx);
@@ -103,7 +102,6 @@ void Node::RemoveParent(Node *p) {
     fprintf(stderr, "Node #%d does not have parent node #%d!", this->GetNodeIndex(), p_idx);
     return;
   }
-  set_parents_ptrs.erase(p);
 
   set_parent_indexes.erase(p_idx);
   vec_disc_parent_indexes.erase(std::find(vec_disc_parent_indexes.begin(), vec_disc_parent_indexes.end(), p_idx));
@@ -111,13 +109,13 @@ void Node::RemoveParent(Node *p) {
 }
 
 
-void Node::GenDiscParCombs() {
+void Node::GenDiscParCombs(set<Node*> set_parent_ptrs) {
   set_discrete_parents_combinations.clear();
 
   // Preprocess. Construct set of sets.
   set<DiscreteConfig> set_of_sets;
   if (set_parent_indexes.empty()) {return;}
-  for (auto par_ptr : set_parents_ptrs) {
+  for (auto par_ptr : set_parent_ptrs) {
     if (!par_ptr->is_discrete) { continue; }
     DiscreteConfig cb;
     pair<int, int> ele;
@@ -137,7 +135,6 @@ void Node::GenDiscParCombs() {
 }
 
 void Node::ClearParents() {
-  set_parents_ptrs.clear();
   set_discrete_parents_combinations.clear();
 
   vec_disc_parent_indexes.clear();

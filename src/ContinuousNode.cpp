@@ -31,7 +31,6 @@ void ContinuousNode::AddChild(Node *c) {
 }
 
 void ContinuousNode::AddParent(Node *p) {
-  set_parents_ptrs.insert(p);
 
   int p_idx = p->GetNodeIndex();
   if (set_parent_indexes.find(p_idx) == set_parent_indexes.end()) {
@@ -51,7 +50,6 @@ void ContinuousNode::RemoveParent(Node *p) {
     fprintf(stderr, "Node #%d does not have parent node #%d!", this->GetNodeIndex(), p_idx);
     return;
   }
-  set_parents_ptrs.erase(p);
   if (!p->is_discrete) {
     auto it = contin_par_indexes.begin();
     while (*it!=p->GetNodeIndex()) { ++it; }
@@ -76,9 +74,9 @@ void ContinuousNode::ClearParams() {
 
 void ContinuousNode::IdentifyContPar() {
   contin_par_indexes.clear();
-  for (const auto &p : set_parents_ptrs) {
-    if (!p->is_discrete) {
-      contin_par_indexes.push_back(p->GetNodeIndex());
-    }
-  }
+  set<int> set_disc_par(vec_disc_parent_indexes.begin(), vec_disc_parent_indexes.end());
+
+  set_difference(set_parent_indexes.begin(), set_parent_indexes.end(),
+                 set_disc_par.begin(), set_disc_par.end(),
+                 inserter(contin_par_indexes, contin_par_indexes.begin()));
 }

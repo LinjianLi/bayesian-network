@@ -51,9 +51,7 @@ void Factor::ConstructFactor(DiscreteNode *node) {
   }
 
   // If this node has parents, the outer loop is for the node, and the inner loop is for the parents.
-  for (auto &p : node->set_parents_ptrs) {
-    related_variables.insert(p->GetNodeIndex());
-  }
+  related_variables.insert(node->set_parent_indexes.begin(), node->set_parent_indexes.end());
   for (auto &p : set_pair_temp) {
     for (auto it_pc=node->set_discrete_parents_combinations.begin(); it_pc!=node->set_discrete_parents_combinations.end(); ++it_pc) {
       DiscreteConfig c = (*it_pc);

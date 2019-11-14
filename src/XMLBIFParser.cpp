@@ -100,7 +100,7 @@ void XMLBIFParser::AssignProbsToNodes(vector<XMLElement*> vec_xml_elems_ptr, vec
       string str_given = (string)(xg->GetText());
       Node *given_np = nullptr;
       for (auto &vnp : vec_nodes_ptr) {
-        if (vnp->node_name==str_given) {
+        if (vnp->node_name == str_given) {
           given_np = vnp;
           break;
         }
@@ -119,7 +119,7 @@ void XMLBIFParser::AssignProbsToNodes(vector<XMLElement*> vec_xml_elems_ptr, vec
       gvp->AddChild(for_np);
     }
 
-    for_np->GenDiscParCombs();
+    for_np->GenDiscParCombs(set<Node*>(vec_given_vars_ptrs.begin(), vec_given_vars_ptrs.end()));
 
     // Parse "TABLE" ==================================================
     string str_table = xpp->FirstChildElement("TABLE")->GetText();

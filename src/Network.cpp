@@ -241,7 +241,8 @@ set<Node*> Network::GetChildrenPtrsOfNode(int node_index) {
 
 void Network::GenDiscParCombsForAllNodes() {
   for (auto id_np : this->map_idx_node_ptr) {
-    id_np.second->GenDiscParCombs();
+    auto np = id_np.second;
+    np->GenDiscParCombs(GetParentPtrsOfNode(np->GetNodeIndex()));
   }
 }
 

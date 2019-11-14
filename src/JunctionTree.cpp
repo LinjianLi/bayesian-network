@@ -453,7 +453,7 @@ void JunctionTree::AssignPotentials() {
     if (node_ptr->is_discrete) {
       factors.push_back(Factor(dynamic_cast<DiscreteNode*>(node_ptr)));
     } else {  // If the node is continuous.
-      cgrs.push_back(CGRegression(node_ptr));
+      cgrs.push_back(CGRegression(node_ptr, network->GetParentPtrsOfNode(node_ptr->GetNodeIndex())));
     }
   }
 
