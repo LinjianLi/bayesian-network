@@ -17,6 +17,8 @@
 
 using namespace std;
 
+class Network;  // Forward declaration.
+
 class Factor {
  public:
   set<int> related_variables;
@@ -24,10 +26,10 @@ class Factor {
   map<DiscreteConfig, double> map_potentials;
 
   Factor() = default;
-  explicit Factor(DiscreteNode*);
+  Factor(DiscreteNode*, Network *net);
   void CopyFactor(Factor F);
   void SetMembers(set<int> , set<DiscreteConfig> , map<DiscreteConfig, double> );
-  void ConstructFactor(DiscreteNode*);
+  void ConstructFactor(DiscreteNode*, Network *net);
   Factor MultiplyWithFactor(Factor);
   Factor SumOverVar(DiscreteNode *);
   Factor SumOverVar(int);

@@ -17,6 +17,10 @@ int Node::GetNodeIndex() const {
   return node_index;
 }
 
+bool Node::HasParents() const {
+  return !set_parent_indexes.empty();
+}
+
 
 int Node::GetNumParents() const {
   return set_parent_indexes.size();
@@ -48,6 +52,13 @@ int Node::GetParConfigGivenParValueIndexes(vector<int> &par_val_indexes) {
 }
 
 int Node::GetParConfigGivenAllVarValueIndexes(vector<int> &all_var_val_indexes) {
+  if (HasParents()) {
+    int temp = (*set_parent_indexes.rbegin());
+    assert(all_var_val_indexes.size() > temp);
+  } else {
+    assert(all_var_val_indexes.size() > GetNodeIndex());
+  }
+
   vector<int> par_val_indexes;
   par_val_indexes.reserve(vec_disc_parent_indexes.size());
   for (auto const par : vec_disc_parent_indexes) {
@@ -55,6 +66,14 @@ int Node::GetParConfigGivenAllVarValueIndexes(vector<int> &all_var_val_indexes) 
   }
   return GetParConfigGivenParValueIndexes(par_val_indexes);
 }
+
+int Node::GetDiscParIndexInNodeGivenDiscParIndexInNetwork(int par_index_in_network) {
+  int &global_index = par_index_in_network;
+  auto it = std::find(this->vec_disc_parent_indexes.begin(), this->vec_disc_parent_indexes.end(), global_index);
+  int local_index = std::distance(this->vec_disc_parent_indexes.begin(), it);
+  return local_index;
+}
+
 
 
 void Node::SetNodeIndex(int i) {

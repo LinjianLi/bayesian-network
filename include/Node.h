@@ -42,6 +42,7 @@ class Node {
   int GetNumParentsConfig();
   int GetParConfigGivenParValueIndexes(vector<int> &par_val_indexes);   // The process of getting "iCPT" in Weka.
   int GetParConfigGivenAllVarValueIndexes(vector<int> &all_var_val_indexes);   // The process of getting "iCPT" in Weka.
+  int GetDiscParIndexInNodeGivenDiscParIndexInNetwork(int par_index_in_network);
   // ==================================================
 
   Node() = default;
@@ -49,6 +50,7 @@ class Node {
   Node(int index, string name);
   int GetNodeIndex() const;
   void SetNodeIndex(int index);
+  bool HasParents() const;
   int GetNumParents() const;
   int GetNumChildren() const;
   virtual void AddChild(Node *node_ptr);

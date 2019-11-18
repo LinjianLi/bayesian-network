@@ -37,7 +37,7 @@ double ScoreFunction::LogLikelihoodForNode(Node *node_ptr) {
   auto d_node_ptr = dynamic_cast<DiscreteNode*>(node_ptr);
   const int &r_i = d_node_ptr->GetDomainSize();
   double log_likelihood = 0;
-  if (!node_ptr->set_parent_indexes.empty()) {
+  if (node_ptr->HasParents()) {
 
 
     // For every "j".
@@ -123,7 +123,7 @@ double ScoreFunction::LogK2ForNode(Node *node_ptr) {
 
   double sum_over_j = 0;
 
-  if (!node_ptr->set_parent_indexes.empty()) {
+  if (node_ptr->HasParents()) {
 
 
     for (const auto &par_comb : node_ptr->set_discrete_parents_combinations) {
@@ -228,7 +228,7 @@ double ScoreFunction::LogBDeuForNode(Node *node_ptr, int equi_sample_size) {
   const int &r_i = d_node_ptr->GetDomainSize();
   double sum_over_j = 0;
 
-  if (!node_ptr->set_parent_indexes.empty()) {
+  if (node_ptr->HasParents()) {
 
     const int &q_i = node_ptr->set_discrete_parents_combinations.size();
     for (const auto &par_comb : node_ptr->set_discrete_parents_combinations) {

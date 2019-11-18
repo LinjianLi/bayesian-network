@@ -42,7 +42,7 @@ class NetworkTest : public ::testing::Test {
     trainer->LoadLIBSVMDataAutoDetectConfig(train_set_file_path);
     tester->LoadLIBSVMDataAutoDetectConfig(test_set_file_path);
     network->StructLearnCompData(trainer, false);
-    network->LearnParamsKnowStructCompData(trainer, false);
+    network->LearnParamsKnowStructCompData(trainer, 2, false);
   }
 
 
@@ -84,9 +84,9 @@ TEST_F(NetworkTest, DISABLED_gibbs_samples_to_libsvm_file) {
   for(int i=0; i<net_samp->num_nodes; ++i) {
     fprintf(stdout, "\n====================================\n");
     Factor f1, f2;
-    f1.ConstructFactor(dynamic_cast<DiscreteNode*>(network->FindNodePtrByIndex(i)));
+    f1.ConstructFactor(dynamic_cast<DiscreteNode*>(network->FindNodePtrByIndex(i)), network);
     f1.PrintPotentials();
-    f2.ConstructFactor(dynamic_cast<DiscreteNode*>(net_samp->FindNodePtrByIndex(i)));
+    f2.ConstructFactor(dynamic_cast<DiscreteNode*>(net_samp->FindNodePtrByIndex(i)), network);
     f2.PrintPotentials();
   }
 }
@@ -199,9 +199,9 @@ TEST(CustomNetworkTest, sampling_dog_net_to_csv_file_and_relearn_params) {
   for(int i=0; i<net_samp->num_nodes; ++i) {
     fprintf(stdout, "\n====================================\n");
     Factor f1, f2;
-    f1.ConstructFactor(dynamic_cast<DiscreteNode*>(custom_net->FindNodePtrByIndex(i)));
+    f1.ConstructFactor(dynamic_cast<DiscreteNode*>(custom_net->FindNodePtrByIndex(i)), custom_net);
     f1.PrintPotentials();
-    f2.ConstructFactor(dynamic_cast<DiscreteNode*>(net_samp->FindNodePtrByIndex(i)));
+    f2.ConstructFactor(dynamic_cast<DiscreteNode*>(net_samp->FindNodePtrByIndex(i)), net_samp);
     f2.PrintPotentials();
   }
 

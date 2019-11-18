@@ -239,6 +239,23 @@ set<Node*> Network::GetChildrenPtrsOfNode(int node_index) {
 }
 
 
+vector<int> Network::ConvertInstanceIntValuesToValueIndexesOfDiscreteNodes(vector<int> instance) {
+  assert(instance.size() >= this->num_nodes);
+  vector<int> result = instance;
+#pragma omp parallel for
+  for (int i = 0; i < this->num_nodes; ++i) {
+    int val = instance.at(i);
+    Node *node_ptr = FindNodePtrByIndex(i);
+    if (node_ptr->is_discrete) {
+      auto d_node_ptr = (DiscreteNode*)node_ptr;
+      int val_index = d_node_ptr->GetIndexOfValue(val);
+      result.at(i) = val_index;
+    }
+  }
+  return result;
+}
+
+
 void Network::GenDiscParCombsForAllNodes() {
   for (auto id_np : this->map_idx_node_ptr) {
     auto np = id_np.second;
@@ -392,15 +409,23 @@ void Network::LearnParamsKnowStructCompData(const Dataset *dts, int alpha, bool 
   int num_cores = omp_get_num_procs();
   omp_set_num_threads(num_cores);
   int max_work_per_thread = (dts->num_vars + num_cores - 1) / num_cores;
-  #pragma omp parallel
+//  #pragma omp parallel
   {
     // For every node.
-    for (int i = max_work_per_thread*omp_get_thread_num();
-         i < max_work_per_thread*(omp_get_thread_num()+1) && i < dts->num_vars;
-         ++i) {
-//    for (int i=0; i<dts->num_vars; ++i) {
+//    for (int i = max_work_per_thread*omp_get_thread_num();
+//         i < max_work_per_thread*(omp_get_thread_num()+1) && i < dts->num_vars;
+//         ++i) {
+    for (int i=0; i<dts->num_vars; ++i) {
       DiscreteNode *this_node = dynamic_cast<DiscreteNode*>(FindNodePtrByIndex(i));   // todo: support continuous node
-      if (this_node->set_parent_indexes.empty()) {
+
+
+      for (int s = 0; s < dts->num_instance; ++s) {
+        vector<int> var_val_indexes = ConvertInstanceIntValuesToValueIndexesOfDiscreteNodes(vector<int>(dts->dataset_all_vars[s], dts->dataset_all_vars[s]+dts->num_vars));
+        this_node->AddInstanceOfValueIndex(var_val_indexes);
+      }
+
+
+      if (!this_node->HasParents()) {
 
         map<int, double> *MPT = &(dynamic_cast<DiscreteNode*>(this_node)->map_marg_prob_table);
         int denominator = dts->num_instance;
@@ -412,6 +437,12 @@ void Network::LearnParamsKnowStructCompData(const Dataset *dts, int alpha, bool 
           int query = this_node->vec_potential_vals.at(ii);
           // Laplace smoothing.
           (*MPT)[query] = ((*MPT)[query] + alpha) / (denominator + alpha * this_node->GetDomainSize());
+        }
+
+        // todo: delete the for loop below
+        for (auto query : this_node->vec_potential_vals) {
+          cout << this_node->GetNodeIndex() << ":\t";
+          cout << (*MPT)[query] << '\t' << this_node->GetProbability(this_node->GetIndexOfValue(query), 0) << endl;
         }
 
       } else {  // If the node has parents.
@@ -442,6 +473,12 @@ void Network::LearnParamsKnowStructCompData(const Dataset *dts, int alpha, bool 
             // Laplace smoothing.
             (*CPT)[query][par_comb] = ((*CPT)[query][par_comb] + alpha) / (denominator + alpha * this_node->GetDomainSize());
           }
+        }
+
+        // todo: delete the for loop below
+        for (auto query : this_node->vec_potential_vals) {
+          cout << this_node->GetNodeIndex() << ":\t";
+          cout << (*CPT)[query][*(this_node->set_discrete_parents_combinations.begin())] << '\t' << this_node->GetProbability(this_node->GetIndexOfValue(query), 0) << endl;
         }
 
       }
@@ -511,10 +548,10 @@ DiscreteConfig Network::ConstructEvidence(int *nodes_indexes, int *observations,
 
 vector<Factor> Network::ConstructFactors(vector<int> Z, Node *Y) {
   vector<Factor> factors_list;
-  factors_list.push_back(Factor(dynamic_cast<DiscreteNode*>(Y)));
+  factors_list.push_back(Factor(dynamic_cast<DiscreteNode*>(Y), this));
   for (int i = 0; i < Z.size(); ++i) {
     Node* n = FindNodePtrByIndex(Z.at(i));
-    factors_list.push_back(Factor(dynamic_cast<DiscreteNode*>(n)));
+    factors_list.push_back(Factor(dynamic_cast<DiscreteNode*>(n), this));
   }
   return factors_list;
 }
@@ -936,7 +973,7 @@ pair<DiscreteConfig, double> Network::DrawOneLikelihoodWeightingSample(const Dis
         // Set the sample value to be the same as the evidence.
         instance.insert(pair<int, int>(index, p.second));
         // Update the weight.
-        if(!n_p->set_parent_indexes.empty()) {
+        if(n_p->HasParents()) {
           set<int> parents_indexes;
           for (const auto &par : GetParentPtrsOfNode(n_p->GetNodeIndex())) {
             parents_indexes.insert(par->GetNodeIndex());
@@ -949,7 +986,7 @@ pair<DiscreteConfig, double> Network::DrawOneLikelihoodWeightingSample(const Dis
           }
           weight *= dynamic_cast<DiscreteNode*>(n_p)->map_cond_prob_table[p.second][parents_index_value];
         } else {
-          weight *= dynamic_cast<DiscreteNode*>(n_p)->map_marg_prob_table[p.second];
+          weight *= dynamic_cast<DiscreteNode*>(n_p)->GetProbability(dynamic_cast<DiscreteNode*>(n_p)->GetIndexOfValue(p.second), 0);//map_marg_prob_table[p.second];
         }
         break;
       }
@@ -1359,6 +1396,16 @@ void Network::StructLearnByOtt(Dataset *dts, vector<int> topo_ord_constraint) {
        << "Generating parents combinations for each node......" << endl;
   GenDiscParCombsForAllNodes();
 }
+
+
+vector<int> Network::SparseInstanceFillZeroToCompleteInstance(DiscreteConfig sparse_instance) {
+  vector<int> complete_instance(this->num_nodes, 0);
+  for (const auto p : sparse_instance) {
+    complete_instance.at(p.first) = p.second;
+  }
+  return complete_instance;
+}
+
 
 
 #pragma clang diagnostic pop

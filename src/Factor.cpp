@@ -3,6 +3,7 @@
 //
 
 #include "Factor.h"
+#include "Network.h"
 
 
 void Factor::SetMembers(set<int> rv,
@@ -19,45 +20,55 @@ void Factor::CopyFactor(Factor F) {
 }
 
 
-Factor::Factor(DiscreteNode *node) {
-  ConstructFactor(node);
+Factor::Factor(DiscreteNode *node, Network *net) {
+  ConstructFactor(node, net);
 }
 
 
-void Factor::ConstructFactor(DiscreteNode *node) {
+void Factor::ConstructFactor(DiscreteNode *disc_node, Network *net) {
 
-  int node_index = node->GetNodeIndex();
+  int node_index = disc_node->GetNodeIndex();
 
   related_variables.insert(node_index);
 
   set<pair<int,int>> set_pair_temp;
-  for (int i = 0; i < node->GetDomainSize(); ++i) {
+  for (int i = 0; i < disc_node->GetDomainSize(); ++i) {
     DiscreteConfig comb_temp;
     pair<int, int> pair_temp;
     pair_temp.first = node_index;
-    pair_temp.second = node->vec_potential_vals.at(i);
+    pair_temp.second = disc_node->vec_potential_vals.at(i);
     set_pair_temp.insert(pair_temp);
   }
 
-  // If this node has no parents.
-  if (node->set_parent_indexes.empty()) {
+  // If this disc_node has no parents.
+  if (!disc_node->HasParents()) {
     for (auto &p : set_pair_temp) {
       DiscreteConfig c;
       c.insert(p);
       set_combinations.insert(c);
-      map_potentials[c] = dynamic_cast<DiscreteNode*>(node)->map_marg_prob_table[p.second];
+      map_potentials[c] = disc_node->GetProbability(disc_node->GetIndexOfValue(p.second), 0);
     }
     return;
   }
 
-  // If this node has parents, the outer loop is for the node, and the inner loop is for the parents.
-  related_variables.insert(node->set_parent_indexes.begin(), node->set_parent_indexes.end());
+  // If this disc_node has parents, the outer loop is for the disc_node, and the inner loop is for the parents.
+  related_variables.insert(disc_node->set_parent_indexes.begin(), disc_node->set_parent_indexes.end());
   for (auto &p : set_pair_temp) {
-    for (auto it_pc=node->set_discrete_parents_combinations.begin(); it_pc!=node->set_discrete_parents_combinations.end(); ++it_pc) {
+    for (auto it_pc=disc_node->set_discrete_parents_combinations.begin(); it_pc!=disc_node->set_discrete_parents_combinations.end(); ++it_pc) {
       DiscreteConfig c = (*it_pc);
+      auto c_old = c;
       c.insert(p);
       set_combinations.insert(c);
-      map_potentials[c] = dynamic_cast<DiscreteNode*>(node)->map_cond_prob_table[p.second][*it_pc];
+
+
+      vector<int> complete_instance = net->SparseInstanceFillZeroToCompleteInstance(c_old);
+      vector<int> complete_instance_var_val_index = net->ConvertInstanceIntValuesToValueIndexesOfDiscreteNodes(complete_instance);
+      int par_config = disc_node->GetParConfigGivenAllVarValueIndexes(complete_instance_var_val_index);
+
+
+      map_potentials[c] = disc_node->GetProbability(
+              disc_node->GetIndexOfValue(p.second),
+              par_config);//map_cond_prob_table[p.second][c_old];
     }
   }
 }
