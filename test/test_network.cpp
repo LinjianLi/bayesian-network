@@ -42,7 +42,7 @@ class NetworkTest : public ::testing::Test {
     trainer->LoadLIBSVMDataAutoDetectConfig(train_set_file_path);
     tester->LoadLIBSVMDataAutoDetectConfig(test_set_file_path);
     network->StructLearnCompData(trainer, false);
-    network->LearnParamsKnowStructCompData(trainer, 2, false);
+    network->LearnParamsKnowStructCompData(trainer, false);
   }
 
 

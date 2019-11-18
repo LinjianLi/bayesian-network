@@ -63,9 +63,9 @@ int DiscreteNode::GetNumParams() const {
 
 void DiscreteNode::ClearParams() {
   if (set_parent_indexes.empty()) {
-    for (auto &kv : map_marg_prob_table) {
-      kv.second = 0;
-    }
+//    for (auto &kv : map_marg_prob_table) {
+//      kv.second = 0;
+//    }
   } else {
     for (auto &kv : map_cond_prob_table) {
       for (auto &kv2 : kv.second) {
@@ -85,7 +85,7 @@ void DiscreteNode::PrintProbabilityTable() {
   if (set_parent_indexes.empty()) {    // If this node has no parents
     for(int i = 0; i < GetDomainSize(); ++i) {    // For each row of MPT
       int query = vec_potential_vals.at(i);
-      cout << "P(" << query << ")=" << map_marg_prob_table[query] << '=' << GetProbability(GetIndexOfValue(query), 0) << '\t';
+      cout << "P(" << query << ")=" << GetProbability(GetIndexOfValue(query), 0) << '\t';
     }
     cout << endl;
 
@@ -131,12 +131,12 @@ int DiscreteNode::SampleNodeGivenParents(DiscreteConfig evidence) {
 
   vector<int> weights;
   if (par_evi.empty()) {
-    for (int i=0; i<GetDomainSize(); ++i) {
-      int w = (int)(map_marg_prob_table[vec_potential_vals.at(i)]*10000);
+    for (int i = 0; i < GetDomainSize(); ++i) {
+      int w = (int) (GetProbability(i, 0) * 10000);
       weights.push_back(w);
     }
   } else {
-    for (int i=0; i<GetDomainSize(); ++i) {
+    for (int i = 0; i < GetDomainSize(); ++i) {
       int w = (int)(map_cond_prob_table[vec_potential_vals.at(i)][par_evi]*10000);
       weights.push_back(w);
     }

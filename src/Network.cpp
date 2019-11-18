@@ -420,30 +420,32 @@ void Network::LearnParamsKnowStructCompData(const Dataset *dts, int alpha, bool 
 
 
       for (int s = 0; s < dts->num_instance; ++s) {
-        vector<int> var_val_indexes = ConvertInstanceIntValuesToValueIndexesOfDiscreteNodes(vector<int>(dts->dataset_all_vars[s], dts->dataset_all_vars[s]+dts->num_vars));
+        vector<int> var_val_indexes =
+                ConvertInstanceIntValuesToValueIndexesOfDiscreteNodes(vector<int>(dts->dataset_all_vars[s],
+                                                                      dts->dataset_all_vars[s]+dts->num_vars));
         this_node->AddInstanceOfValueIndex(var_val_indexes);
       }
 
 
       if (!this_node->HasParents()) {
 
-        map<int, double> *MPT = &(dynamic_cast<DiscreteNode*>(this_node)->map_marg_prob_table);
-        int denominator = dts->num_instance;
-        for (int s = 0; s < dts->num_instance; ++s) {
-          int query = dts->dataset_all_vars[s][i];
-          (*MPT)[query] += 1;
-        }
-        for (int ii = 0; ii < this_node->GetDomainSize(); ++ii) {
-          int query = this_node->vec_potential_vals.at(ii);
-          // Laplace smoothing.
-          (*MPT)[query] = ((*MPT)[query] + alpha) / (denominator + alpha * this_node->GetDomainSize());
-        }
-
-        // todo: delete the for loop below
-        for (auto query : this_node->vec_potential_vals) {
-          cout << this_node->GetNodeIndex() << ":\t";
-          cout << (*MPT)[query] << '\t' << this_node->GetProbability(this_node->GetIndexOfValue(query), 0) << endl;
-        }
+//        map<int, double> *MPT = &(dynamic_cast<DiscreteNode*>(this_node)->map_marg_prob_table);
+//        int denominator = dts->num_instance;
+//        for (int s = 0; s < dts->num_instance; ++s) {
+//          int query = dts->dataset_all_vars[s][i];
+//          (*MPT)[query] += 1;
+//        }
+//        for (int ii = 0; ii < this_node->GetDomainSize(); ++ii) {
+//          int query = this_node->vec_potential_vals.at(ii);
+//          // Laplace smoothing.
+//          (*MPT)[query] = ((*MPT)[query] + alpha) / (denominator + alpha * this_node->GetDomainSize());
+//        }
+//
+//        // todo: delete the for loop below
+//        for (auto query : this_node->vec_potential_vals) {
+//          cout << this_node->GetNodeIndex() << ":\t";
+//          cout << (*MPT)[query] << '\t' << this_node->GetProbability(this_node->GetIndexOfValue(query), 0) << endl;
+//        }
 
       } else {  // If the node has parents.
 
@@ -471,15 +473,19 @@ void Network::LearnParamsKnowStructCompData(const Dataset *dts, int alpha, bool 
           for (int j = 0; j < this_node->GetDomainSize(); ++j) {
             int query = this_node->vec_potential_vals.at(j);
             // Laplace smoothing.
-            (*CPT)[query][par_comb] = ((*CPT)[query][par_comb] + alpha) / (denominator + alpha * this_node->GetDomainSize());
+            (*CPT)[query][par_comb] =
+                    ((*CPT)[query][par_comb] + alpha)
+                    /
+                    (denominator + alpha * this_node->GetDomainSize());
           }
         }
 
-        // todo: delete the for loop below
-        for (auto query : this_node->vec_potential_vals) {
-          cout << this_node->GetNodeIndex() << ":\t";
-          cout << (*CPT)[query][*(this_node->set_discrete_parents_combinations.begin())] << '\t' << this_node->GetProbability(this_node->GetIndexOfValue(query), 0) << endl;
-        }
+//        // todo: delete the for loop below
+//        for (auto query : this_node->vec_potential_vals) {
+//          cout << this_node->GetNodeIndex() << ":\t";
+//          cout << (*CPT)[query][*(this_node->set_discrete_parents_combinations.begin())]
+//               << '\t' << this_node->GetProbability(this_node->GetIndexOfValue(query), 0) << endl;
+//        }
 
       }
     }
@@ -557,7 +563,8 @@ vector<Factor> Network::ConstructFactors(vector<int> Z, Node *Y) {
 }
 
 
-void Network::LoadEvidenceIntoFactors(vector<Factor> *factors_list, DiscreteConfig E, set<int> all_related_vars) {
+void Network::LoadEvidenceIntoFactors(vector<Factor> *factors_list,
+                                      DiscreteConfig E, set<int> all_related_vars) {
 
   // I do not know why this function cannot use omp to parallel.
   // If I set number of threads more than 1, the accuracy will decrease!
@@ -964,29 +971,28 @@ pair<DiscreteConfig, double> Network::DrawOneLikelihoodWeightingSample(const Dis
   DiscreteConfig instance;
   double weight = 1;
   // SHOULD NOT use OpenMP, because must draw samples in the topological ordering.
-  for (const auto &index : this->GetTopoOrd()) {
+  for (const auto &index : this->GetTopoOrd()) {  // For each node.
     Node *n_p = FindNodePtrByIndex(index);
     bool observed = false;
-    for (const auto &p : evidence) {
-      if (index==p.first) {
+    for (const auto &var_val : evidence) {  // Find if this variable node is in evidence.
+      if (index==var_val.first) {
         observed = true;
         // Set the sample value to be the same as the evidence.
-        instance.insert(pair<int, int>(index, p.second));
+        instance.insert(pair<int, int>(index, var_val.second));
         // Update the weight.
         if(n_p->HasParents()) {
-          set<int> parents_indexes;
-          for (const auto &par : GetParentPtrsOfNode(n_p->GetNodeIndex())) {
-            parents_indexes.insert(par->GetNodeIndex());
-          }
-          DiscreteConfig parents_index_value;
-          for (const auto &i : instance) {
-            if (parents_indexes.find(i.first) != parents_indexes.end()) {
-              parents_index_value.insert(i);
-            }
-          }
-          weight *= dynamic_cast<DiscreteNode*>(n_p)->map_cond_prob_table[p.second][parents_index_value];
+          vector<int> complete_instance = this->SparseInstanceFillZeroToCompleteInstance(instance);
+          complete_instance = this->ConvertInstanceIntValuesToValueIndexesOfDiscreteNodes(complete_instance);
+          int parents_config = dynamic_cast<DiscreteNode*>(n_p)->GetParConfigGivenAllVarValueIndexes(complete_instance);
+          double cond_prob = dynamic_cast<DiscreteNode*>(n_p)->GetProbability(
+                  dynamic_cast<DiscreteNode*>(n_p)->GetIndexOfValue(var_val.second), parents_config);
+
+          weight *= cond_prob;
+
+
         } else {
-          weight *= dynamic_cast<DiscreteNode*>(n_p)->GetProbability(dynamic_cast<DiscreteNode*>(n_p)->GetIndexOfValue(p.second), 0);//map_marg_prob_table[p.second];
+          weight *= dynamic_cast<DiscreteNode*>(n_p)->GetProbability(
+                  dynamic_cast<DiscreteNode*>(n_p)->GetIndexOfValue(var_val.second), 0);
         }
         break;
       }
@@ -1000,7 +1006,8 @@ pair<DiscreteConfig, double> Network::DrawOneLikelihoodWeightingSample(const Dis
 }
 
 
-vector<pair<DiscreteConfig, double>> Network::DrawSamplesByLikelihoodWeighting(const DiscreteConfig &evidence, int num_samp) {
+vector<pair<DiscreteConfig, double>> Network::DrawSamplesByLikelihoodWeighting(const DiscreteConfig &evidence,
+                                                                               int num_samp) {
   vector<pair<DiscreteConfig, double>> results;
   #pragma omp parallel for
   for (int i=0; i<num_samp; ++i) {
@@ -1011,7 +1018,8 @@ vector<pair<DiscreteConfig, double>> Network::DrawSamplesByLikelihoodWeighting(c
   return results;
 }
 
-Factor Network::CalcuMargWithLikelihoodWeightingSamples(const vector<pair<DiscreteConfig, double>> &samples, const int &node_index) {
+Factor Network::CalcuMargWithLikelihoodWeightingSamples(const vector<pair<DiscreteConfig, double>> &samples,
+                                                        const int &node_index) {
   map<int, double> value_weight;
   DiscreteNode *n_p = dynamic_cast<DiscreteNode*>(this->FindNodePtrByIndex(node_index));
 
@@ -1175,7 +1183,8 @@ int Network::SampleNodeGivenMarkovBlanketReturnValIndex(Node *node_ptr, Discrete
   vector<int> weights;
   for (int i=0; i<dynamic_cast<DiscreteNode*>(node_ptr)->GetDomainSize(); ++i) {
     DiscreteConfig temp;
-    temp.insert(pair<int,int>(node_ptr->GetNodeIndex(),dynamic_cast<DiscreteNode*>(node_ptr)->vec_potential_vals.at(i)));
+    temp.insert(pair<int,int>(node_ptr->GetNodeIndex(),
+                              dynamic_cast<DiscreteNode*>(node_ptr)->vec_potential_vals.at(i)));
     weights.push_back(f.map_potentials[temp]*10000);
   }
 
@@ -1189,7 +1198,8 @@ int Network::SampleNodeGivenMarkovBlanketReturnValIndex(Node *node_ptr, Discrete
 int Network::ApproxInferByProbLogiRejectSamp(DiscreteConfig e, Node *node, vector<DiscreteConfig> &samples) {
   DiscreteConfig possb_values;
   for (int i=0; i<dynamic_cast<DiscreteNode*>(node)->GetDomainSize(); ++i) {
-    possb_values.insert(pair<int,int>(node->GetNodeIndex(),dynamic_cast<DiscreteNode*>(node)->vec_potential_vals.at(i)));
+    possb_values.insert(pair<int,int>(node->GetNodeIndex(),
+                                      dynamic_cast<DiscreteNode*>(node)->vec_potential_vals.at(i)));
   }
 
   int *count_each_value = new int[this->num_nodes]();
@@ -1258,7 +1268,8 @@ pair<double, set<Node*>> Network::F(Node *node,
     candidate_parents_temp.erase(n);
 
     if (this_node_dynamic_program.find(candidate_parents_temp) == this_node_dynamic_program.end()) {
-      this_node_dynamic_program[candidate_parents_temp] = F(node, candidate_parents_temp, dts, dynamic_program_for_F).first;
+      this_node_dynamic_program[candidate_parents_temp] =
+              F(node, candidate_parents_temp, dts, dynamic_program_for_F).first;
     }
 
     if (this_node_dynamic_program[candidate_parents_temp] > max_score_parents.first) {
@@ -1345,8 +1356,11 @@ vector<int> Network::M(set<Node*> &set_nodes,
   for (auto n : set_nodes) {
     set<Node*> set_nodes_temp = set_nodes;
     set_nodes_temp.erase(n);
-    vector<int> m_of_set_nodes_temp = M(set_nodes_temp, dts, dynamic_program_for_F, dynamic_program_for_Q, dynamic_program_for_M);
-    double score_temp = F(n, set_nodes_temp, dts, dynamic_program_for_F).first + Q(set_nodes_temp, m_of_set_nodes_temp, dts, dynamic_program_for_F, dynamic_program_for_Q).first;
+    vector<int> m_of_set_nodes_temp = M(set_nodes_temp, dts,
+                                        dynamic_program_for_F, dynamic_program_for_Q,
+                                        dynamic_program_for_M);
+    double score_temp = F(n, set_nodes_temp, dts, dynamic_program_for_F).first
+                        + Q(set_nodes_temp, m_of_set_nodes_temp, dts, dynamic_program_for_F, dynamic_program_for_Q).first;
     if (score_temp > score) {
       score = score_temp;
       g_star = n;

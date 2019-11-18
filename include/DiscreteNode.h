@@ -22,14 +22,14 @@ class DiscreteNode : public Node {
   vector<int> vec_potential_vals;
 
   map<int, map<DiscreteConfig, double> >  map_cond_prob_table;
-  map<int, double>  map_marg_prob_table;
+//  map<int, double>  map_marg_prob_table;
 
   // =============== refactor like Weka ===============
   // Keep the count instead of probability.
   map< int, map<int, int> > map_cond_prob_table_statistics;  // Keys: query variable, parents config. Value: count under condition.
                                                              // If the node has no parents, then the second dimension, parents_config, will only use the key 0.
   map<int, int> map_total_count_under_parents_config;   // Key: parents config. Value: total count.
-  double laplace_smooth = 2;
+  double laplace_smooth = 1;
   void AddInstanceOfValueIndex(vector<int> instance_of_value_index);
   void AddCount(int query_val_index, int parents_config, int count);
   double GetProbability(int query_val_index, int parents_config);
