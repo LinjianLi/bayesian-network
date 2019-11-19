@@ -3,6 +3,7 @@
 //
 
 #include "DiscreteNode.h"
+#include "Network.h"
 
 #include <utility>
 
@@ -119,7 +120,7 @@ void DiscreteNode::PrintProbabilityTable() {
   }
 }
 
-int DiscreteNode::SampleNodeGivenParents(DiscreteConfig evidence) {
+int DiscreteNode::SampleNodeGivenParents(DiscreteConfig &evidence, Network *net) {
   // The evidence should contain all parents of this node.
   // The evidence about other nodes (including children) are IGNORED!!!
   DiscreteConfig par_evi;
@@ -136,8 +137,12 @@ int DiscreteNode::SampleNodeGivenParents(DiscreteConfig evidence) {
       weights.push_back(w);
     }
   } else {
+
+    vector<int> complete_instance_val_indexes = net->SparseInstanceToCompleteValueIndexes(par_evi);
+    int par_config = GetParConfigGivenAllVarValueIndexes(complete_instance_val_indexes);
+
     for (int i = 0; i < GetDomainSize(); ++i) {
-      int w = (int)(map_cond_prob_table[vec_potential_vals.at(i)][par_evi]*10000);
+      int w = (int) GetProbability(GetIndexOfValue(vec_potential_vals.at(i)), par_config) * 10000;;
       weights.push_back(w);
     }
   }

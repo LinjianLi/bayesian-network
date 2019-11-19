@@ -79,12 +79,12 @@ void XMLBIFParser::AssignProbsToNodes(vector<XMLElement*> vec_xml_elems_ptr, vec
     DiscreteNode* for_np = nullptr;
     // Find the variable corresponding to this probability.
     for (auto &vnp : vec_nodes_ptr) {
-      if (vnp->node_name==str_for) {
+      if (vnp->node_name == str_for) {
         for_np = dynamic_cast<DiscreteNode*>(vnp);
         break;
       }
     }
-    if (for_np==nullptr) {
+    if (for_np == nullptr) {
       fprintf(stderr, "Error in function %s! Probability does not match any variable!", __FUNCTION__);
       exit(1);
     }
@@ -105,7 +105,7 @@ void XMLBIFParser::AssignProbsToNodes(vector<XMLElement*> vec_xml_elems_ptr, vec
           break;
         }
       }
-      if (given_np==nullptr) {
+      if (given_np == nullptr) {
         fprintf(stderr, "Error in function %s! \"GIVEN %s\" does not match any variable!",
                 __FUNCTION__,str_given.c_str());
         exit(1);
@@ -135,13 +135,13 @@ void XMLBIFParser::AssignProbsToNodes(vector<XMLElement*> vec_xml_elems_ptr, vec
     // all combinations of values of variables in "GIVEN".
     vector<int> vec_range_each_digit;
     int num_given = vec_given_vars_ptrs.size();
-    vec_range_each_digit.reserve(num_given+1);
+    vec_range_each_digit.reserve(num_given + 1);
 
     // The first "digit" is for this node.
     vec_range_each_digit.push_back(for_np->GetDomainSize());
 
     // The following "digits" are for parents of this node.
-    for (int i=0; i<num_given; ++i) {
+    for (int i = 0; i < num_given; ++i) {
       vec_range_each_digit.push_back(dynamic_cast<DiscreteNode*>(vec_given_vars_ptrs[i])->GetDomainSize());
     }
 
@@ -149,13 +149,13 @@ void XMLBIFParser::AssignProbsToNodes(vector<XMLElement*> vec_xml_elems_ptr, vec
 
     // Now, nary_counts and vec_db_table_entry should correspond on position.
     // So, they should have the same size.
-    if (nary_counts.size()!=vec_db_table_entry.size()) {
-      fprintf(stderr, "Error in function %s! Two vectors with different sizes!",__FUNCTION__);
+    if (nary_counts.size() != vec_db_table_entry.size()) {
+      fprintf(stderr, "Error in function %s! Two vectors have different sizes!",__FUNCTION__);
       exit(1);
     }
 
     // Now, set the node's conditional probability map.
-    for (int i=0; i<nary_counts.size(); ++i) {
+    for (int i = 0; i < nary_counts.size(); ++i) {
       vector<int> &digits = nary_counts[i];
 
       // The first (left-most) digit is for this node.
@@ -165,20 +165,19 @@ void XMLBIFParser::AssignProbsToNodes(vector<XMLElement*> vec_xml_elems_ptr, vec
       // The first (left-most) digit is for this node not the parents.
       // So, j start at 1.
       // Also, the number of parents is one smaller than the number of "digits".
-      for (int j=1; j<digits.size(); ++j) {
+      for (int j = 1; j < digits.size(); ++j) {
         comb.insert(
                 pair<int,int>(
                         vec_given_vars_ptrs[j-1]->GetNodeIndex(),
-                        dynamic_cast<DiscreteNode*>(vec_given_vars_ptrs[j-1])->vec_potential_vals[digits[j]])
-        );
+                        dynamic_cast<DiscreteNode*>(vec_given_vars_ptrs[j-1])->vec_potential_vals[digits[j]]));
       }
 
-      if (digits.size()==1) {
+      if (digits.size() == 1) {
         // If true, then this node does not have parent.
-//        dynamic_cast<DiscreteNode*>(for_np)->map_marg_prob_table[query] = vec_db_table_entry[i];
         dynamic_cast<DiscreteNode*>(for_np)->AddCount(dynamic_cast<DiscreteNode*>(for_np)->GetIndexOfValue(query), 0, vec_db_table_entry[i]*10000);
       } else {
         dynamic_cast<DiscreteNode*>(for_np)->map_cond_prob_table[query][comb] = vec_db_table_entry[i];
+        dynamic_cast<DiscreteNode*>(for_np)->AddCount(dynamic_cast<DiscreteNode*>(for_np)->GetIndexOfValue(query), i, vec_db_table_entry[i]*10000);
       }
 
     }
@@ -187,7 +186,7 @@ void XMLBIFParser::AssignProbsToNodes(vector<XMLElement*> vec_xml_elems_ptr, vec
 
 vector<Node*> XMLBIFParser::GetConnectedNodes() {
   vector<Node*> unconnected_nodes = GetUnconnectedNodes();
-  AssignProbsToNodes(vec_xml_probs_ptr,unconnected_nodes);
+  AssignProbsToNodes(vec_xml_probs_ptr, unconnected_nodes);
   vector<Node*> &connected_nodes = unconnected_nodes; // Just change a name.
   return connected_nodes;
 }

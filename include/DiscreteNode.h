@@ -15,6 +15,8 @@
 
 using namespace std;
 
+class Network;  // Forward declaration.
+
 class DiscreteNode : public Node {
  public:
   // The order matters.
@@ -22,7 +24,6 @@ class DiscreteNode : public Node {
   vector<int> vec_potential_vals;
 
   map<int, map<DiscreteConfig, double> >  map_cond_prob_table;
-//  map<int, double>  map_marg_prob_table;
 
   // =============== refactor like Weka ===============
   // Keep the count instead of probability.
@@ -47,7 +48,7 @@ class DiscreteNode : public Node {
   int GetNumParams() const override;
   void ClearParams() override;
   void PrintProbabilityTable();
-  int SampleNodeGivenParents(DiscreteConfig evidence);
+  int SampleNodeGivenParents(DiscreteConfig &evidence, Network *net);
 
  private:
   int num_potential_vals;

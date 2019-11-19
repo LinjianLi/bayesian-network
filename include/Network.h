@@ -38,7 +38,8 @@ class Network {
 
   // =============== refactor like Weka ===============
   map<int, Node*> map_idx_node_ptr;  // Key: node index. Value: node pointer.
-  vector<int> SparseInstanceFillZeroToCompleteInstance(DiscreteConfig sparse_instance);
+  vector<int> SparseInstanceToCompleteValueIndexes(DiscreteConfig &sparse_instance);
+  vector<int> SparseInstanceFillZeroToCompleteInstance(DiscreteConfig &sparse_instance);
   vector<int> ConvertInstanceIntValuesToValueIndexesOfDiscreteNodes(vector<int> instance);
   // ==================================================
 

@@ -158,7 +158,7 @@ TEST_F(NetworkTest, sampling_node) {
   e.insert(pair<int,int>(0,-1));
   int count_0 = 0;
   for (int i=0; i<10000; ++i) {
-    if(0 == dynamic_cast<DiscreteNode*>(n_39)->SampleNodeGivenParents(e)) {
+    if(0 == dynamic_cast<DiscreteNode*>(n_39)->SampleNodeGivenParents(e, network)) {
       ++count_0;
     }
   }

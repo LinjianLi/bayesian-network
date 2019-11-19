@@ -409,15 +409,14 @@ void Network::LearnParamsKnowStructCompData(const Dataset *dts, int alpha, bool 
   int num_cores = omp_get_num_procs();
   omp_set_num_threads(num_cores);
   int max_work_per_thread = (dts->num_vars + num_cores - 1) / num_cores;
-//  #pragma omp parallel
+  #pragma omp parallel
   {
     // For every node.
-//    for (int i = max_work_per_thread*omp_get_thread_num();
-//         i < max_work_per_thread*(omp_get_thread_num()+1) && i < dts->num_vars;
-//         ++i) {
-    for (int i=0; i<dts->num_vars; ++i) {
+    for (int i = max_work_per_thread*omp_get_thread_num();
+         i < max_work_per_thread*(omp_get_thread_num()+1) && i < dts->num_vars;
+         ++i) {
+//    for (int i=0; i<dts->num_vars; ++i) {
       DiscreteNode *this_node = dynamic_cast<DiscreteNode*>(FindNodePtrByIndex(i));   // todo: support continuous node
-
 
       for (int s = 0; s < dts->num_instance; ++s) {
         vector<int> var_val_indexes =
@@ -426,68 +425,6 @@ void Network::LearnParamsKnowStructCompData(const Dataset *dts, int alpha, bool 
         this_node->AddInstanceOfValueIndex(var_val_indexes);
       }
 
-
-      if (!this_node->HasParents()) {
-
-//        map<int, double> *MPT = &(dynamic_cast<DiscreteNode*>(this_node)->map_marg_prob_table);
-//        int denominator = dts->num_instance;
-//        for (int s = 0; s < dts->num_instance; ++s) {
-//          int query = dts->dataset_all_vars[s][i];
-//          (*MPT)[query] += 1;
-//        }
-//        for (int ii = 0; ii < this_node->GetDomainSize(); ++ii) {
-//          int query = this_node->vec_potential_vals.at(ii);
-//          // Laplace smoothing.
-//          (*MPT)[query] = ((*MPT)[query] + alpha) / (denominator + alpha * this_node->GetDomainSize());
-//        }
-//
-//        // todo: delete the for loop below
-//        for (auto query : this_node->vec_potential_vals) {
-//          cout << this_node->GetNodeIndex() << ":\t";
-//          cout << (*MPT)[query] << '\t' << this_node->GetProbability(this_node->GetIndexOfValue(query), 0) << endl;
-//        }
-
-      } else {  // If the node has parents.
-
-        map<int, map<DiscreteConfig, double> > *CPT = &(dynamic_cast<DiscreteNode*>(this_node)->map_cond_prob_table);
-        set<DiscreteConfig> *ptr_set_par_combs = &(this_node->set_discrete_parents_combinations);
-        for (auto &par_comb : *ptr_set_par_combs) {    // For each column in CPT. Because the sum over column of CPT must be 1.
-          int denominator = 0;
-          for (int s = 0; s < dts->num_instance; ++s) {
-            int compatibility = 1;  // We assume compatibility is 1,
-            // and set it to 0 if we find that (*it_par_comb) is not compatible.
-            // If we support learning with incomplete data,
-            // the compatibility can be between 0 and 1.
-
-            for (const auto &index_value : par_comb) {
-              if (dts->dataset_all_vars[s][index_value.first] != index_value.second) {
-                compatibility = 0;
-                break;
-              }
-            }
-            denominator += compatibility;
-            int query = dts->dataset_all_vars[s][i];
-            (*CPT)[query][par_comb] += compatibility;
-          }
-          // Normalize so that the sum is 1.
-          for (int j = 0; j < this_node->GetDomainSize(); ++j) {
-            int query = this_node->vec_potential_vals.at(j);
-            // Laplace smoothing.
-            (*CPT)[query][par_comb] =
-                    ((*CPT)[query][par_comb] + alpha)
-                    /
-                    (denominator + alpha * this_node->GetDomainSize());
-          }
-        }
-
-//        // todo: delete the for loop below
-//        for (auto query : this_node->vec_potential_vals) {
-//          cout << this_node->GetNodeIndex() << ":\t";
-//          cout << (*CPT)[query][*(this_node->set_discrete_parents_combinations.begin())]
-//               << '\t' << this_node->GetProbability(this_node->GetIndexOfValue(query), 0) << endl;
-//        }
-
-      }
     }
   }   // end of: #pragma omp parallel
   cout << "==================================================" << '\n'
@@ -961,7 +898,7 @@ DiscreteConfig Network::ProbLogicSampleNetwork() {
   // Cannot use OpenMP, because must draw samples in the topological ordering.
   for (const auto &index : this->GetTopoOrd()) {
     Node *n_p = FindNodePtrByIndex(index);
-    int drawn_value = dynamic_cast<DiscreteNode*>(n_p)->SampleNodeGivenParents(instance); // todo: support continuous nodes
+    int drawn_value = dynamic_cast<DiscreteNode*>(n_p)->SampleNodeGivenParents(instance, this); // todo: support continuous nodes
     instance.insert(pair<int,int>(index, drawn_value));
   }
   return instance;
@@ -981,6 +918,7 @@ pair<DiscreteConfig, double> Network::DrawOneLikelihoodWeightingSample(const Dis
         instance.insert(pair<int, int>(index, var_val.second));
         // Update the weight.
         if(n_p->HasParents()) {
+
           vector<int> complete_instance = this->SparseInstanceFillZeroToCompleteInstance(instance);
           complete_instance = this->ConvertInstanceIntValuesToValueIndexesOfDiscreteNodes(complete_instance);
           int parents_config = dynamic_cast<DiscreteNode*>(n_p)->GetParConfigGivenAllVarValueIndexes(complete_instance);
@@ -988,7 +926,6 @@ pair<DiscreteConfig, double> Network::DrawOneLikelihoodWeightingSample(const Dis
                   dynamic_cast<DiscreteNode*>(n_p)->GetIndexOfValue(var_val.second), parents_config);
 
           weight *= cond_prob;
-
 
         } else {
           weight *= dynamic_cast<DiscreteNode*>(n_p)->GetProbability(
@@ -998,7 +935,7 @@ pair<DiscreteConfig, double> Network::DrawOneLikelihoodWeightingSample(const Dis
       }
     }
     if (!observed) {
-      int drawn_value = dynamic_cast<DiscreteNode*>(n_p)->SampleNodeGivenParents(instance);   // todo: Consider continuous nodes
+      int drawn_value = dynamic_cast<DiscreteNode*>(n_p)->SampleNodeGivenParents(instance, this);   // todo: Consider continuous nodes
       instance.insert(pair<int,int>(index, drawn_value));
     }
   }
@@ -1412,7 +1349,7 @@ void Network::StructLearnByOtt(Dataset *dts, vector<int> topo_ord_constraint) {
 }
 
 
-vector<int> Network::SparseInstanceFillZeroToCompleteInstance(DiscreteConfig sparse_instance) {
+vector<int> Network::SparseInstanceFillZeroToCompleteInstance(DiscreteConfig &sparse_instance) {
   vector<int> complete_instance(this->num_nodes, 0);
   for (const auto p : sparse_instance) {
     complete_instance.at(p.first) = p.second;
@@ -1420,6 +1357,14 @@ vector<int> Network::SparseInstanceFillZeroToCompleteInstance(DiscreteConfig spa
   return complete_instance;
 }
 
+
+vector<int> Network::SparseInstanceToCompleteValueIndexes(DiscreteConfig &sparse_instance) {
+  return ConvertInstanceIntValuesToValueIndexesOfDiscreteNodes(
+                 SparseInstanceFillZeroToCompleteInstance(
+                         sparse_instance
+                 )
+         );
+}
 
 
 #pragma clang diagnostic pop
