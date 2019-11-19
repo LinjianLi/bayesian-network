@@ -63,18 +63,6 @@ int DiscreteNode::GetNumParams() const {
 }
 
 void DiscreteNode::ClearParams() {
-  if (set_parent_indexes.empty()) {
-//    for (auto &kv : map_marg_prob_table) {
-//      kv.second = 0;
-//    }
-  } else {
-    for (auto &kv : map_cond_prob_table) {
-      for (auto &kv2 : kv.second) {
-        kv2.second = 0;
-      }
-    }
-  }
-
   map_cond_prob_table_statistics.clear();
   map_total_count_under_parents_config.clear();
 }
@@ -83,39 +71,25 @@ void DiscreteNode::ClearParams() {
 void DiscreteNode::PrintProbabilityTable() {
   cout << GetNodeIndex() << ":\t";
 
-  if (set_parent_indexes.empty()) {    // If this node has no parents
+  if (this->HasParents()) {    // If this node has parents
+
+    for(int i = 0; i<GetDomainSize(); ++i) {    // For each head variable of CPT
+      int query = vec_potential_vals.at(i);
+      for (int j = 0; j < GetNumParentsConfig(); ++j){  // For tail variables of CPT
+        string condition = "parent_config_" + to_string(j);
+
+        cout << "P(" << query << '|' << condition << ")=" << GetProbability(i, j) << '\t';
+      }
+    }
+    cout << endl;
+
+  } else {
+
     for(int i = 0; i < GetDomainSize(); ++i) {    // For each row of MPT
       int query = vec_potential_vals.at(i);
       cout << "P(" << query << ")=" << GetProbability(GetIndexOfValue(query), 0) << '\t';
     }
     cout << endl;
-
-  } else {  // If this node has parents
-
-    for(int i = 0; i<GetDomainSize(); ++i) {    // For each row of CPT
-      int query = vec_potential_vals.at(i);
-      for (const auto &comb : set_discrete_parents_combinations) {  // For each column of CPT
-        string condition;
-        for (auto &p : comb) {
-          condition += ("\"" + to_string(p.first) + "\"=" + to_string(p.second));
-        }
-        cout << "P(" << query << '|' << condition << ")=" << map_cond_prob_table[query][comb] << '\t';
-      }
-    }
-    cout << endl;
-
-
-
-    // todo: delete the following
-    for(int i = 0; i<GetDomainSize(); ++i) {    // For each row of CPT
-      int query = vec_potential_vals.at(i);
-      for (int j = 0; j<GetNumParentsConfig(); ++j) {  // For each column of CPT
-        cout << "P(" << query << '|' << j << ")=" << GetProbability(query, j) << '\t';
-      }
-    }
-    cout << endl;
-
-
 
   }
 }

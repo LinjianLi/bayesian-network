@@ -22,9 +22,7 @@ class DiscreteNode : public Node {
   // The order matters.
   vector<string> vec_str_potential_vals;
   vector<int> vec_potential_vals;
-
-  map<int, map<DiscreteConfig, double> >  map_cond_prob_table;
-
+  
   // =============== refactor like Weka ===============
   // Keep the count instead of probability.
   map< int, map<int, int> > map_cond_prob_table_statistics;  // Keys: query variable, parents config. Value: count under condition.

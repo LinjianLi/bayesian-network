@@ -176,7 +176,6 @@ void XMLBIFParser::AssignProbsToNodes(vector<XMLElement*> vec_xml_elems_ptr, vec
         // If true, then this node does not have parent.
         dynamic_cast<DiscreteNode*>(for_np)->AddCount(dynamic_cast<DiscreteNode*>(for_np)->GetIndexOfValue(query), 0, vec_db_table_entry[i]*10000);
       } else {
-        dynamic_cast<DiscreteNode*>(for_np)->map_cond_prob_table[query][comb] = vec_db_table_entry[i];
         dynamic_cast<DiscreteNode*>(for_np)->AddCount(dynamic_cast<DiscreteNode*>(for_np)->GetIndexOfValue(query), i, vec_db_table_entry[i]*10000);
       }
 
