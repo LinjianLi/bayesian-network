@@ -77,8 +77,8 @@ class ExperimentOnPhishing : public ::testing::Test {
 
     trainer->LoadCSVDataAutoDetectConfig(train_set_file_path, false, 30);
     tester->LoadCSVDataAutoDetectConfig(test_set_file_path, false, 30);
-    network->StructLearnCompData(trainer, false);
-    network->LearnParamsKnowStructCompData(trainer, 1, false);
+    network->StructLearnCompData(trainer, true);
+    network->LearnParamsKnowStructCompData(trainer, 1, true);
   }
 
 
@@ -91,7 +91,7 @@ TEST_F(ExperimentOnPhishing, naive_bayes_var_elim) {
   ChowLiuTree *net = new ChowLiuTree(true);
   net->root_node_index = 30;
   net->ConstructNaiveBayesNetwork(trainer);
-  net->LearnParamsKnowStructCompData(trainer, 2, true);
+  net->LearnParamsKnowStructCompData(trainer, 2, false);
 
   ScoreFunction sf(net, tester);
   cout << "Scores\n"
@@ -116,17 +116,22 @@ TEST_F(ExperimentOnPhishing, naive_bayes_lik_wei) {
 
 TEST_F(ExperimentOnPhishing, var_elim) {
   double accuracy = network->TestNetReturnAccuracy(tester);
-  EXPECT_GT(accuracy, 0.80);
+  EXPECT_GT(accuracy, 0.8250);
+}
+
+TEST_F(ExperimentOnPhishing, brute_force) {
+  double accuracy = network->TestNetReturnAccuracyGivenAllCompleteInstances(tester);
+  EXPECT_GT(accuracy, 0.8250);
 }
 
 TEST_F(ExperimentOnPhishing, like_weigh) {
   double accuracy = network->TestAccuracyByLikelihoodWeighting(tester, 50);
-  EXPECT_GT(accuracy, 0.60);
+  EXPECT_GT(accuracy, 0.8500);
 }
 
 TEST_F(ExperimentOnPhishing,approx) {
   double accuracy = network->TestNetByApproxInferReturnAccuracy(tester,100000);
-  EXPECT_GT(accuracy, 0.650);
+  EXPECT_GT(accuracy, 0.6500);
 }
 
 TEST_F(ExperimentOnPhishing, jun_tree_accuracy) {
@@ -162,6 +167,11 @@ class ExperimentOnA1a : public ::testing::Test {
 
 TEST_F(ExperimentOnA1a, var_elim) {
   double accuracy = network->TestNetReturnAccuracy(tester);
+  EXPECT_GT(accuracy, 0.8230);
+}
+
+TEST_F(ExperimentOnA1a, brute_force) {
+  double accuracy = network->TestNetReturnAccuracyGivenAllCompleteInstances(tester);
   EXPECT_GT(accuracy, 0.8230);
 }
 

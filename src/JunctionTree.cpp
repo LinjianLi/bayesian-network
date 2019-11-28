@@ -619,8 +619,7 @@ Factor JunctionTree::BeliefPropagationCalcuDiscreteVarMarginal(int query_index) 
   set<int> other_vars = selected_clique->related_variables;
   other_vars.erase(query_index);
 
-  Factor f;
-  f.SetMembers(selected_clique->related_variables, selected_clique->set_disc_configs, selected_clique->map_potentials);
+  Factor f(selected_clique->related_variables, selected_clique->set_disc_configs, selected_clique->map_potentials);
   for (auto &index : other_vars) {
     f = f.SumOverVar(index);
   }
@@ -666,9 +665,9 @@ double JunctionTree::TestNetReturnAccuracy(int class_var, Dataset *dts) {
 
     #pragma omp critical
     { ++progress; }
-    string progress_detail = to_string(progress) + '/' + to_string(m);
-    fprintf(stdout, "%s\n", progress_detail.c_str());
-    fflush(stdout);
+//    string progress_detail = to_string(progress) + '/' + to_string(m);
+//    fprintf(stdout, "%s\n", progress_detail.c_str());
+//    fflush(stdout);
 
 
     if (progress % m20 == 0) {

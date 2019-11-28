@@ -22,7 +22,7 @@ class DiscreteNode : public Node {
   // The order matters.
   vector<string> vec_str_potential_vals;
   vector<int> vec_potential_vals;
-  
+
   // =============== refactor like Weka ===============
   // Keep the count instead of probability.
   map< int, map<int, int> > map_cond_prob_table_statistics;  // Keys: query variable, parents config. Value: count under condition.
@@ -33,17 +33,21 @@ class DiscreteNode : public Node {
   void AddCount(int query_val_index, int parents_config, int count);
   double GetProbability(int query_val_index, int parents_config);
   int GetIndexOfValue(int val);
+
+  bool cpt_initialized = false;
+  void InitializeCPT();
   // ==================================================
 
   DiscreteNode();
   explicit DiscreteNode(int index);
   DiscreteNode(int index, string name);
+
   void SetDomain(vector<string> str_domain);
   void SetDomain(vector<int> int_domain);
   int GetDomainSize() const;
   void SetDomainSize(int size);
   void AddParent(Node *node_ptr) override;
-  int GetNumParams() const override;
+  int GetNumParams() override;
   void ClearParams() override;
   void PrintProbabilityTable();
   int SampleNodeGivenParents(DiscreteConfig &evidence, Network *net);

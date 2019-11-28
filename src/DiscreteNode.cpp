@@ -7,17 +7,16 @@
 
 #include <utility>
 
-DiscreteNode::DiscreteNode() {
-  is_discrete = true;
-}
+DiscreteNode::DiscreteNode(): DiscreteNode(-1) {}
 
-DiscreteNode::DiscreteNode(int index) {
+DiscreteNode::DiscreteNode(int index): DiscreteNode(index, to_string(index)) {}
+
+DiscreteNode::DiscreteNode(int index, string name) {
   is_discrete = true;
   SetNodeIndex(index);
-}
-
-DiscreteNode::DiscreteNode(int index, string name): DiscreteNode(index) {
   node_name = std::move(name);
+
+  num_potential_vals = -1;
 }
 
 void DiscreteNode::SetDomain(vector<string> str_domain) {
@@ -57,8 +56,8 @@ void DiscreteNode::AddParent(Node *p) {
   }
 }
 
-int DiscreteNode::GetNumParams() const {
-  int scale = this->set_discrete_parents_combinations.empty() ? 1 : this->set_discrete_parents_combinations.size();
+int DiscreteNode::GetNumParams() {
+  int scale = this->GetNumParentsConfig();
   return this->GetDomainSize() * scale;
 }
 
@@ -134,16 +133,34 @@ void DiscreteNode::AddInstanceOfValueIndex(vector<int> instance_of_value_index) 
 }
 
 
-void DiscreteNode::AddCount(int query_val_index, int parents_config, int count) {
-  map_total_count_under_parents_config[parents_config] += count;
-  if (map_cond_prob_table_statistics.find(query_val_index) == map_cond_prob_table_statistics.end()
-      || map_cond_prob_table_statistics[query_val_index].find(parents_config) == map_cond_prob_table_statistics[query_val_index].end()) {
-    map_cond_prob_table_statistics[query_val_index][parents_config] = 0;
+void DiscreteNode::InitializeCPT() {
+  for (int j = 0; j < GetNumParentsConfig(); ++j) {
+    map_total_count_under_parents_config[j] = 0;
+    for (int i = 0; i < GetDomainSize(); ++i) {
+      map_cond_prob_table_statistics[i][j] = 0;
+    }
   }
+  cpt_initialized = true;
+}
+
+
+void DiscreteNode::AddCount(int query_val_index, int parents_config, int count) {
+
+  if (!cpt_initialized) { InitializeCPT(); }
+
+  map_total_count_under_parents_config[parents_config] += count;
+//  if (map_cond_prob_table_statistics.find(query_val_index) == map_cond_prob_table_statistics.end()
+//      || map_cond_prob_table_statistics[query_val_index].find(parents_config) == map_cond_prob_table_statistics[query_val_index].end()) {
+//    map_cond_prob_table_statistics[query_val_index][parents_config] = 0;
+//  }
+
   map_cond_prob_table_statistics[query_val_index][parents_config] += count;
 }
 
 double DiscreteNode::GetProbability(int query_val_index, int parents_config) {
+
+  // todo: fix the bug when the given query or parent config are not seen in the training stage.
+
   int frequency_count =  map_cond_prob_table_statistics[query_val_index][parents_config];
   int total = map_total_count_under_parents_config[parents_config];
   double prob = (frequency_count + laplace_smooth) / (total + laplace_smooth * GetDomainSize());

@@ -6,27 +6,7 @@
 #include "Network.h"
 
 
-void Factor::SetMembers(set<int> rv,
-               set<DiscreteConfig> sc,
-               map<DiscreteConfig, double> mp) {
-  this->related_variables = rv;
-  this->set_combinations = sc;
-  this->map_potentials = mp;
-}
-
-
-void Factor::CopyFactor(Factor F) {
-  this->SetMembers(F.related_variables, F.set_combinations, F.map_potentials);
-}
-
-
-Factor::Factor(DiscreteNode *node, Network *net) {
-  ConstructFactor(node, net);
-}
-
-
-void Factor::ConstructFactor(DiscreteNode *disc_node, Network *net) {
-
+Factor::Factor(DiscreteNode *disc_node, Network *net) {
   int node_index = disc_node->GetNodeIndex();
 
   related_variables.insert(node_index);
@@ -42,35 +22,67 @@ void Factor::ConstructFactor(DiscreteNode *disc_node, Network *net) {
 
   // If this disc_node has no parents.
   if (!disc_node->HasParents()) {
+
+
     for (auto &p : set_pair_temp) {
       DiscreteConfig c;
       c.insert(p);
       set_combinations.insert(c);
       map_potentials[c] = disc_node->GetProbability(disc_node->GetIndexOfValue(p.second), 0);
+
+
+      int par_config = 0;
+      map_potentials_new[par_config * disc_node->GetDomainSize() + disc_node->GetIndexOfValue(p.second)];
     }
-    return;
-  }
-
-  // If this disc_node has parents, the outer loop is for the disc_node, and the inner loop is for the parents.
-  related_variables.insert(disc_node->set_parent_indexes.begin(), disc_node->set_parent_indexes.end());
-  for (auto &p : set_pair_temp) {
-    for (auto it_pc=disc_node->set_discrete_parents_combinations.begin(); it_pc!=disc_node->set_discrete_parents_combinations.end(); ++it_pc) {
-      DiscreteConfig c = (*it_pc);
-      auto c_old = c;
-      c.insert(p);
-      set_combinations.insert(c);
 
 
-      vector<int> complete_instance = net->SparseInstanceFillZeroToCompleteInstance(c_old);
-      vector<int> complete_instance_var_val_index = net->ConvertInstanceIntValuesToValueIndexesOfDiscreteNodes(complete_instance);
-      int par_config = disc_node->GetParConfigGivenAllVarValueIndexes(complete_instance_var_val_index);
+  } else {
 
 
-      map_potentials[c] = disc_node->GetProbability(
-              disc_node->GetIndexOfValue(p.second),
-              par_config);//map_cond_prob_table[p.second][c_old];
+    // If this disc_node has parents, the outer loop is for the disc_node, and the inner loop is for the parents.
+    related_variables.insert(disc_node->set_parent_indexes.begin(), disc_node->set_parent_indexes.end());
+    for (auto &p : set_pair_temp) {
+      for (auto it_pc=disc_node->set_discrete_parents_combinations.begin(); it_pc!=disc_node->set_discrete_parents_combinations.end(); ++it_pc) {
+        DiscreteConfig c = (*it_pc);
+        auto c_old = c;
+        c.insert(p);
+        set_combinations.insert(c);
+
+
+        vector<int> complete_instance = net->SparseInstanceFillZeroToCompleteInstance(c_old);
+        vector<int> complete_instance_var_val_index = net->ConvertInstanceIntValuesToValueIndexesOfDiscreteNodes(complete_instance);
+        int par_config = disc_node->GetParConfigGivenAllVarValueIndexes(complete_instance_var_val_index);
+
+
+        map_potentials[c] = disc_node->GetProbability(
+                disc_node->GetIndexOfValue(p.second),
+                par_config);
+
+
+        map_potentials_new[par_config * disc_node->GetDomainSize() + disc_node->GetIndexOfValue(p.second)] =
+                disc_node->GetProbability(
+                        disc_node->GetIndexOfValue(p.second),
+                        par_config);
+      }
     }
+
+
+    vec_related_vars = disc_node->vec_disc_parent_indexes;
+    vec_related_vars.push_back(disc_node->GetNodeIndex());
+    map_vars_domain_size = disc_node->map_disc_parents_domain_size;
+    map_vars_domain_size[disc_node->GetNodeIndex()] = disc_node->GetDomainSize();
+
+
   }
+}
+
+
+Factor::Factor(set<int> rv,
+                        set<DiscreteConfig> sc,
+                        map<DiscreteConfig, double> mp) {
+  this->related_variables = rv;
+  this->set_combinations = sc;
+  this->map_potentials = mp;
 }
 
 
@@ -101,17 +113,69 @@ Factor Factor::MultiplyWithFactor(Factor second_factor) {
       newFactor.map_potentials[new_comb] = this->map_potentials[first] * second_factor.map_potentials[second];
     }
   }
+
   return newFactor;
 }
 
-Factor Factor::SumOverVar(int index) {
+Factor Factor::SumOverVar(int variable) {
+
+
+
+
+
+//  int pos = -1;
+//  while (vec_related_vars.at(++pos) != variable);
+//  int gap = 1;
+//  for (int i = pos; i < vec_related_vars.size(); ++i) {
+//    gap *= map_vars_domain_size.at(vec_related_vars.at(i));
+//  }
+//  vector<int> vars_domain_size;
+//  int num_new_config = 1;
+//  for (auto var : vec_related_vars) {
+//    if (var == variable) { continue; }
+//    num_new_config *= map_vars_domain_size.at(var);
+//    vars_domain_size.push_back(map_vars_domain_size.at(var));
+//  }
+//
+//  vector<int> temp_vec_related_vars = this->vec_related_vars;
+//  temp_vec_related_vars.erase(temp_vec_related_vars.begin() + pos);
+//  map<int, int> temp_map_vars_domain_size = this->map_vars_domain_size;
+//  temp_map_vars_domain_size.erase(variable);
+//  map<int, double> temp_map_potentials_new;
+//
+//  map<int, int> map_new_config_to_old_config_floor;
+//  for (int i = 0; i < num_new_config; ++i) {
+//    vector<int> detail = TheNthNaryCount(vars_domain_size, i);
+//    int old_config_floor = 0;
+//    for (int j = 0; j < detail.size(); ++j) {
+//      if (j == pos) {
+//        old_config_floor *= map_vars_domain_size.at(vec_related_vars.at(pos));
+//        old_config_floor += 0; // Floor. Thus, zero.
+//      }
+//      old_config_floor *= temp_map_vars_domain_size.at(vec_related_vars.at(j));
+//      old_config_floor += detail.at(j);
+//    }
+//    map_new_config_to_old_config_floor[i] = old_config_floor;
+//  }
+//
+//  for (int i = 0; i < num_new_config; ++i) {
+//    double p = 0;
+//    for (int j = 0; j < map_vars_domain_size.at(vec_related_vars.at(pos)); ++j) {
+//      p += map_potentials_new.at(map_new_config_to_old_config_floor[i] + gap * j);
+//    }
+//    temp_map_potentials_new[i] = p;
+//  }
+
+
+
+
   Factor newFactor;
-  this->related_variables.erase(index);
+  this->related_variables.erase(variable);
   newFactor.related_variables = this->related_variables;
   for (auto comb : set_combinations) {
     pair<int, int> pair_to_be_erased;
     for (auto p : comb) {
-      if (p.first==index) {
+      if (p.first==variable) {
         pair_to_be_erased = p;
         break;
       }
@@ -125,6 +189,17 @@ Factor Factor::SumOverVar(int index) {
       newFactor.map_potentials[comb] = temp;
     }
   }
+
+
+
+
+//  newFactor.vec_related_vars = temp_vec_related_vars;
+//  newFactor.map_vars_domain_size = temp_map_vars_domain_size;
+//  newFactor.map_potentials_new = temp_map_potentials_new;
+
+
+
+
   return newFactor;
 }
 
@@ -140,6 +215,9 @@ void Factor::Normalize() {
   }
   for (auto &comb : set_combinations) {
     map_potentials[comb] /= denominator;
+  }
+  for (int i = 0; i < set_combinations.size(); ++i) {
+    map_potentials_new[i] /= denominator;
   }
 }
 

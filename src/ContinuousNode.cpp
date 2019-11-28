@@ -1,3 +1,5 @@
+#include <utility>
+
 //
 // Created by LinjianLi on 2019/2/9.
 //
@@ -5,17 +7,14 @@
 #include"ContinuousNode.h"
 #include "DiscreteNode.h"
 
-ContinuousNode::ContinuousNode() {
-  is_discrete = false;
-}
+ContinuousNode::ContinuousNode(): ContinuousNode(-1) {}
 
-ContinuousNode::ContinuousNode(int index) {
+ContinuousNode::ContinuousNode(int index): ContinuousNode(index, to_string(index)) {}
+
+ContinuousNode::ContinuousNode(int index, string name) {
   SetNodeIndex(index);
   is_discrete = false;
-}
-
-ContinuousNode::ContinuousNode(int index, string name): ContinuousNode(index) {
-  node_name = name;
+  node_name = std::move(name);
 }
 
 void ContinuousNode::AddChild(Node *c) {
@@ -59,8 +58,8 @@ void ContinuousNode::RemoveParent(Node *p) {
   vec_disc_parent_indexes.erase(std::find(vec_disc_parent_indexes.begin(), vec_disc_parent_indexes.end(), p_idx));
 }
 
-int ContinuousNode::GetNumParams() const {
-  int scale = this->set_discrete_parents_combinations.empty() ? 1 : this->set_discrete_parents_combinations.size();
+int ContinuousNode::GetNumParams() {
+  int scale = GetNumParentsConfig();
   int num_params_for_a_config = 0;
   num_params_for_a_config += 2;  // For mu and variance.
   num_params_for_a_config += contin_par_indexes.size();  // For coefficients.

@@ -95,10 +95,14 @@ class Network {
   Factor VarElimInferReturnPossib(vector<int> elim_ord, DiscreteConfig evidence, Node *target);
   Factor VarElimInferReturnPossib(DiscreteConfig evidence, Node *target);
 
+  map<int, double> DistributionOfValueIndexGivenCompleteInstanceValueIndex(int var_index, DiscreteConfig evidence);
+  int PredictUseSimpleBruteForce(DiscreteConfig E, int Y_index);
+
   int PredictUseVarElimInfer(vector<int> Z, DiscreteConfig E, int Y_index);
   int PredictUseVarElimInfer(DiscreteConfig E, int Y_index);
 
   double TestNetReturnAccuracy(Dataset *dts);
+  double TestNetReturnAccuracyGivenAllCompleteInstances(Dataset *dts);
   double TestNetByApproxInferReturnAccuracy(Dataset *dts, int num_samp);
   double TestAccuracyByLikelihoodWeighting(Dataset *dts, int num_samp);
 

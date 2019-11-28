@@ -21,7 +21,7 @@ class Node {
 
  protected:
 
-  // Indexes for all nodes in a network should start at 0.
+  // Indexes for all nodes in a network should be consecutive integers starting at 0.
   int node_index = -1;
   int num_parents_config = -1;
 
@@ -60,7 +60,7 @@ class Node {
   void GenDiscParCombs(set<Node*> set_parent_ptrs);
   void ClearParents();
   void ClearChildren();
-  virtual int GetNumParams() const = 0;
+  virtual int GetNumParams() = 0;
   virtual void ClearParams() = 0;
 };
 

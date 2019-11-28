@@ -80,7 +80,7 @@ As a benchmark,
    * RandomForest: **0.828886**
  
 My bayesian network
-* Chow-Liu Tree, variable elimination, accuracy of **0.823782**, 20 seconds.
+* Chow-Liu Tree, variable elimination, accuracy of **0.823782**, 20 (another test takes 495, maybe I took down the wrong record) seconds.
 * Chow-Liu Tree, likelihood weighting (50 samples), accuracy of **0.821973**, 698 seconds.
 * Chow-Liu Tree, junction tree, accuracy of **0.816869**, 1495 seconds.
 * Chow-Liu Tree, probabilistic logic sampling and rejection sampling (100000 samples), accuracy of **0.501147**, 5534 seconds.
@@ -145,7 +145,7 @@ Chow-Liu Tree, Laplace smoothing parameter alpha=1, likelihood weighting (50 sam
 
 Chow-Liu Tree, junction tree, accuracy of **0.602674**, 131 seconds.
 
-Chow-Liu Tree, Laplace smoothing parameter alpha=1, junction tree, accuracy of **0.830435**, 25 seconds.
+Chow-Liu Tree, Laplace smoothing parameter alpha=1, junction tree, accuracy of **0.830435**, 146 seconds.
 
 Chow-Liu Tree, probabilistic logic sampling and rejection sampling (100000 samples), accuracy of **0.508142**, 300 seconds.
 

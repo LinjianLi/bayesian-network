@@ -41,8 +41,8 @@ class NetworkTest : public ::testing::Test {
 
     trainer->LoadLIBSVMDataAutoDetectConfig(train_set_file_path);
     tester->LoadLIBSVMDataAutoDetectConfig(test_set_file_path);
-    network->StructLearnCompData(trainer, false);
-    network->LearnParamsKnowStructCompData(trainer, false);
+    network->StructLearnCompData(trainer, true);
+    network->LearnParamsKnowStructCompData(trainer, 1, false);
   }
 
 
@@ -83,10 +83,9 @@ TEST_F(NetworkTest, DISABLED_gibbs_samples_to_libsvm_file) {
 
   for(int i=0; i<net_samp->num_nodes; ++i) {
     fprintf(stdout, "\n====================================\n");
-    Factor f1, f2;
-    f1.ConstructFactor(dynamic_cast<DiscreteNode*>(network->FindNodePtrByIndex(i)), network);
+    Factor f1(dynamic_cast<DiscreteNode*>(network->FindNodePtrByIndex(i)), network),
+           f2(dynamic_cast<DiscreteNode*>(net_samp->FindNodePtrByIndex(i)), network);
     f1.PrintPotentials();
-    f2.ConstructFactor(dynamic_cast<DiscreteNode*>(net_samp->FindNodePtrByIndex(i)), network);
     f2.PrintPotentials();
   }
 }
@@ -129,7 +128,7 @@ TEST_F(NetworkTest, jun_tree_accuracy) {
   sf.PrintAllScore();
   double accuracy = jt->TestNetReturnAccuracy(0,tester);
   delete jt;
-  EXPECT_GT(accuracy,0.6);
+  EXPECT_GT(accuracy,0.7350);
 }
 
 
@@ -182,7 +181,7 @@ TEST(CustomNetworkTest, sampling_dog_net_to_csv_file_and_relearn_params) {
   for (int i = 0; i < custom_net->num_nodes; ++i) {
     names.push_back(custom_net->FindNodePtrByIndex(i)->node_name);
   }
-  string sample_file = "./dog_problem_dataset_by_gibbs_sampling.csv";
+  string sample_file = "../../data/dataset/dog_problem_dataset_by_gibbs_sampling.csv";
 //  vector<DiscreteConfig> samples = custom_net->DrawSamplesByGibbsSamp(5e4, 2e5);
 //  auto trainer = new Dataset();
 //  trainer->SamplesToCSVFile(samples, sample_file, names);
@@ -190,20 +189,29 @@ TEST(CustomNetworkTest, sampling_dog_net_to_csv_file_and_relearn_params) {
   CustomNetwork *net_samp = new CustomNetwork(true);
   net_samp->GetNetFromXMLBIFFile(custom_file);
   net_samp->ClearParams();
-
   Dataset *trn_samp = new Dataset();
   trn_samp->LoadCSVDataAutoDetectConfig(sample_file);
-
   net_samp->LearnParamsKnowStructCompData(trn_samp, false);
-
   for(int i=0; i<net_samp->num_nodes; ++i) {
     fprintf(stdout, "\n====================================\n");
-    Factor f1, f2;
-    f1.ConstructFactor(dynamic_cast<DiscreteNode*>(custom_net->FindNodePtrByIndex(i)), custom_net);
+    Factor f1(dynamic_cast<DiscreteNode*>(custom_net->FindNodePtrByIndex(i)), custom_net),
+           f2(dynamic_cast<DiscreteNode*>(net_samp->FindNodePtrByIndex(i)), net_samp);
     f1.PrintPotentials();
-    f2.ConstructFactor(dynamic_cast<DiscreteNode*>(net_samp->FindNodePtrByIndex(i)), net_samp);
     f2.PrintPotentials();
   }
+
+
+  net_samp->ClearParams();
+  net_samp->LearnParamsKnowStructCompData(trn_samp, false);
+  for(int i=0; i<net_samp->num_nodes; ++i) {
+    fprintf(stdout, "\n====================================\n");
+    Factor f1(dynamic_cast<DiscreteNode*>(custom_net->FindNodePtrByIndex(i)), custom_net),
+            f2(dynamic_cast<DiscreteNode*>(net_samp->FindNodePtrByIndex(i)), net_samp);
+    f1.PrintPotentials();
+    f2.PrintPotentials();
+  }
+
+
 
   Dataset *dts = new Dataset();
   dts->LoadCSVDataAutoDetectConfig("./dog_problem_dataset_by_gibbs_sampling.csv", true, 0);

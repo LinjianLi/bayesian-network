@@ -25,11 +25,16 @@ class Factor {
   set<DiscreteConfig> set_combinations;
   map<DiscreteConfig, double> map_potentials;
 
+  // ==================================================
+  vector<int> vec_related_vars;
+  map<int, int> map_vars_domain_size;
+  map<int, double> map_potentials_new;
+  // ==================================================
+
   Factor() = default;
-  Factor(DiscreteNode*, Network *net);
-  void CopyFactor(Factor F);
-  void SetMembers(set<int> , set<DiscreteConfig> , map<DiscreteConfig, double> );
-  void ConstructFactor(DiscreteNode*, Network *net);
+  Factor(DiscreteNode *disc_node, Network *net);
+  Factor(set<int> rv, set<DiscreteConfig> sc, map<DiscreteConfig, double> mp);
+
   Factor MultiplyWithFactor(Factor);
   Factor SumOverVar(DiscreteNode *);
   Factor SumOverVar(int);

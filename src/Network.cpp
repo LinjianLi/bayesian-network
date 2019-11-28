@@ -240,6 +240,9 @@ set<Node*> Network::GetChildrenPtrsOfNode(int node_index) {
 
 
 vector<int> Network::ConvertInstanceIntValuesToValueIndexesOfDiscreteNodes(vector<int> instance) {
+
+  // todo: deal with the case where the given instance contains unseen values of some variables
+
   assert(instance.size() >= this->num_nodes);
   vector<int> result = instance;
 #pragma omp parallel for
@@ -542,7 +545,7 @@ void Network::LoadEvidenceIntoFactors(vector<Factor> *factors_list,
       set<int> related_vars_of_f = f.related_variables;
       for (auto &v : related_vars_of_f) {
         if (all_related_vars.find(v) == all_related_vars.end()) {
-          f.CopyFactor(f.SumOverVar(v));
+          f = f.SumOverVar(v);
         }
       }
       //--------------------------------------------------------------------------------
@@ -654,6 +657,44 @@ Factor Network::VarElimInferReturnPossib(DiscreteConfig E, Node *Y) {
 }
 
 
+
+map<int, double> Network::DistributionOfValueIndexGivenCompleteInstanceValueIndex(int var_index, DiscreteConfig evidence) {
+  if (!this->pure_discrete) {
+    fprintf(stderr, "Function [%s] only works on pure discrete networks!", __FUNCTION__);
+    exit(1);
+  }
+
+  map<int, double> result;
+
+  DiscreteNode *node = (DiscreteNode*) FindNodePtrByIndex(var_index);
+  auto complete_instance = SparseInstanceFillZeroToCompleteInstance(evidence);
+  complete_instance = ConvertInstanceIntValuesToValueIndexesOfDiscreteNodes(complete_instance);
+
+  for (int i = 0; i < node->GetDomainSize(); ++i) {
+    complete_instance.at(var_index) = i;
+    result[i] = 0;
+    for (int j = 0; j < num_nodes; ++j) {
+      DiscreteNode *node_j = (DiscreteNode*) FindNodePtrByIndex(j);
+      int par_config = node_j->GetParConfigGivenAllVarValueIndexes(complete_instance);
+      double prob = 0;
+      if (j == var_index) {
+        prob = node->GetProbability(i, par_config);
+      } else {
+        prob = node_j->GetProbability(complete_instance.at(j), par_config);
+      }
+      result[i] += log(prob);
+    }
+  }
+  for (int i = 0; i < node->GetDomainSize(); ++i) {
+    result[i] = exp(result[i]);
+  }
+  result = Normalize(result);
+  return result;
+}
+
+
+
+
 int Network::PredictUseVarElimInfer(vector<int> Z, DiscreteConfig E, int Y_index) {
   Node *Y = FindNodePtrByIndex(Y_index);
   Factor F = VarElimInferReturnPossib(Z, E, Y);
@@ -687,6 +728,14 @@ int Network::PredictUseVarElimInfer(DiscreteConfig E, int Y_index) {
 }
 
 
+int Network::PredictUseSimpleBruteForce(DiscreteConfig E, int Y_index) {
+  map<int, double> distribution = DistributionOfValueIndexGivenCompleteInstanceValueIndex(Y_index, E);
+  int label_index = ArgMax(distribution);
+  int label_pridict = ((DiscreteNode*)FindNodePtrByIndex(Y_index))->vec_potential_vals.at(label_index);
+  return label_pridict;
+}
+
+
 double Network::TestNetReturnAccuracy(Dataset *dts) {
 
   cout << "==================================================" << '\n'
@@ -704,13 +753,13 @@ double Network::TestNetReturnAccuracy(Dataset *dts) {
 
   // For each sample in test set
   #pragma omp parallel for
-  for (int i=0; i<m; ++i) {
+  for (int i = 0; i < m; ++i) {
 
     #pragma omp critical
     { ++progress; }
-    string progress_detail = to_string(progress) + '/' + to_string(m);
-    fprintf(stdout, "%s\n", progress_detail.c_str());
-    fflush(stdout);
+//    string progress_detail = to_string(progress) + '/' + to_string(m);
+//    fprintf(stdout, "%s\n", progress_detail.c_str());
+//    fflush(stdout);
 
     if (progress % m20 == 0) {
       string progress_percentage = to_string((double)progress/m * 100) + "%...\n";
@@ -756,6 +805,75 @@ double Network::TestNetReturnAccuracy(Dataset *dts) {
 }
 
 
+double Network::TestNetReturnAccuracyGivenAllCompleteInstances(Dataset *dts) {
+
+  cout << "==================================================" << '\n'
+       << "Begin testing the trained network." << endl;
+
+  struct timeval start, end;
+  double diff;
+  gettimeofday(&start,NULL);
+
+  cout << "Progress indicator: ";
+  int num_of_correct=0, num_of_wrong=0, m=dts->num_instance, m20= m / 20, progress=0;
+
+  int class_var_index = dts->class_var_index;
+
+
+  // For each sample in test set
+//#pragma omp parallel for
+  for (int i = 0; i < m; ++i) {
+
+#pragma omp critical
+    { ++progress; }
+    string progress_detail = to_string(progress) + '/' + to_string(m);
+    fprintf(stdout, "%s\n", progress_detail.c_str());
+    fflush(stdout);
+
+    if (progress % m20 == 0) {
+      string progress_percentage = to_string((double)progress/m * 100) + "%...\n";
+      fprintf(stdout, "Progress: %s\n", progress_percentage.c_str());
+      double acc_so_far = num_of_correct / (double)(num_of_correct+num_of_wrong);
+      fprintf(stdout, "Accuracy so far: %f\n", acc_so_far);
+      fflush(stdout);
+    }
+
+    // For now, only support complete data.
+    int e_num = num_nodes - 1, *e_index = new int[e_num], *e_value = new int[e_num];
+    for (int j = 0; j < num_nodes; ++j) {
+      if (j == class_var_index) {continue;}
+      e_index[j < class_var_index ? j : j - 1] = j;
+      e_value[j < class_var_index ? j : j - 1] = dts->dataset_all_vars[i][j];
+    }
+    DiscreteConfig E = ConstructEvidence(e_index, e_value, e_num);
+    int label_predict = PredictUseSimpleBruteForce(E, class_var_index);
+//    string pred_true = to_string(label_predict) + ':' + to_string(dts->dataset_all_vars[i][class_var_index]);
+//    fprintf(stdout, "%s\n", pred_true.c_str());
+//    fflush(stdout);
+    if (label_predict == dts->dataset_all_vars[i][class_var_index]) {
+#pragma omp critical
+      { ++num_of_correct; }
+    } else {
+#pragma omp critical
+      { ++num_of_wrong; }
+    }
+
+    delete[] e_index;
+    delete[] e_value;
+  }
+
+  gettimeofday(&end,NULL);
+  diff = (end.tv_sec-start.tv_sec) + ((double)(end.tv_usec-start.tv_usec))/1.0E6;
+  setlocale(LC_NUMERIC, "");
+  cout << "==================================================" << '\n'
+       << "The time spent to test the accuracy is " << diff << " seconds" << endl;
+
+  double accuracy = num_of_correct / (double)(num_of_correct+num_of_wrong);
+  cout << '\n' << "Accuracy: " << accuracy << endl;
+  return accuracy;
+}
+
+
 double Network::TestNetByApproxInferReturnAccuracy(Dataset *dts, int num_samp) {
 
 
@@ -780,9 +898,9 @@ double Network::TestNetByApproxInferReturnAccuracy(Dataset *dts, int num_samp) {
 
     #pragma omp critical
     { ++progress; }
-    string progress_detail = to_string(progress) + '/' + to_string(m);
-    fprintf(stdout, "%s\n", progress_detail.c_str());
-    fflush(stdout);
+//    string progress_detail = to_string(progress) + '/' + to_string(m);
+//    fprintf(stdout, "%s\n", progress_detail.c_str());
+//    fflush(stdout);
 
     if (progress % m20 == 0) {
       string progress_percentage = to_string((double)progress/m * 100) + "%...\n";
@@ -842,9 +960,9 @@ double Network::TestAccuracyByLikelihoodWeighting(Dataset *dts, int num_samp) {
 
     #pragma omp critical
     { ++progress; }
-    string progress_detail = to_string(progress) + '/' + to_string(m);
-    fprintf(stdout, "%s\n", progress_detail.c_str());
-    fflush(stdout);
+//    string progress_detail = to_string(progress) + '/' + to_string(m);
+//    fprintf(stdout, "%s\n", progress_detail.c_str());
+//    fflush(stdout);
 
     if (progress % m20 == 0) {
       string progress_percentage = to_string((double)progress/m * 100) + "%...\n";
@@ -985,7 +1103,6 @@ Factor Network::CalcuMargWithLikelihoodWeightingSamples(const vector<pair<Discre
   }
 
   // Construct a factor to return
-  Factor f;
   set<int> rv;
   rv.insert(node_index);
   set<DiscreteConfig> sc;
@@ -999,7 +1116,7 @@ Factor Network::CalcuMargWithLikelihoodWeightingSamples(const vector<pair<Discre
     int value = (*c.begin()).second;
     mp[c] = value_weight[value];
   }
-  f.SetMembers(rv, sc, mp);
+  Factor f(rv, sc, mp);
   return f;
 }
 

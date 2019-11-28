@@ -5,11 +5,12 @@
 #include "Node.h"
 #include "DiscreteNode.h"
 
-Node::Node(int index) {
-  SetNodeIndex(index);
+Node::Node(int index) : Node(index, to_string(index)){
+
 }
 
-Node::Node(int index, string name): Node(index) {
+Node::Node(int index, string name) {
+  SetNodeIndex(index);
   node_name = name;
 }
 
